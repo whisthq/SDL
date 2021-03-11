@@ -1,0 +1,159 @@
+# workflows/build-and-publish-sdl.yml
+#
+# Build & Publish Fractal SDL
+# Build and publish the internal Fractal version of SDL.
+
+name: "Build & Publish Fractal SDL"
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "README.md"
+  workflow_dispatch:
+
+jobs:
+  build-and-publish-fractal-sdl:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+
+    # Platforms to build on/for
+    strategy:
+      matrix:
+        config:
+          - name: "Build and Publish Fractal SDL on Windows"
+            os: windows-2016
+          - name: "Build and Publish Fractal SDL on macOS"
+            os: macos-10.14
+          - name: "Build and Publish Fractal SDL on Linux Ubuntu"
+            os: ubuntu-18.04
+
+    env:
+      binary-location: build
+      windows-tar-name: fractal-windows-sdl2-static-lib.tar.gz
+      macos-tar-name: fractal-macos-sdl2-static-lib.tar.gz
+      linux-tar-name: fractal-linux-sdl2-static-lib.tar.gz
+      headers-tar-name: fractal-sdl2-headers.tar.gz
+      s3-bucket-region: us-east-1
+      s3-bucket-uri: s3://fractal-protocol-shared-libs
+
+    steps:
+      - name: Checkout Git Repository
+        uses: actions/checkout@v2
+
+      # To publish SDL builds to S3
+      - name: Configure AWS S3 CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.s3-bucket-region }}
+
+      - name: On Windows, Set up Visual Studio Developer Command Prompt (for nmake)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: On Linux, Install ALSA Audio Library
+        if: runner.os == 'Linux'
+        shell: bash
+        run: sudo apt-get install libasound2-dev
+
+      - name: Build Fractal SDL on Windows
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          REM create build output folder
+          mkdir ${{ env.binary-location }}
+
+          REM configure Cmake
+          cmake ^
+            -S . ^
+            -B build ^
+            -D HAVE_LIBC=ON ^
+            -D DIRECTX=OFF ^
+            -D CMAKE_BUILD_TYPE=Release ^
+            -G "NMake Makefiles"
+
+          REM build SDL
+          cd ${{ env.binary-location }} && nmake SDL2-static
+
+      - name: Build Fractal SDL on macOS
+        if: runner.os == 'macOS'
+        env:
+            FRACTAL_OSX_SYSROOT: "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk" # Necessary for building on macOS (protocol does NOT support 10.15+ SDKs)
+        shell: bash
+        run: |
+          # Explicitly retrieve macOS 10.14 SDK
+          wget https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz
+
+          # Untar it
+          xz -d MacOSX10.14.sdk.tar.xz
+          tar -xf MacOSX10.14.sdk.tar
+
+          # Move it to the right folder for building SDL
+          mv MacOSX10.14.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
+
+          # create build output folder
+          mkdir ${{ env.binary-location }}
+
+          # configure Cmake
+          cmake \
+            -S . \
+            -B build \
+            -D CMAKE_BUILD_TYPE=Release
+
+          # build SDL
+          cd ${{ env.binary-location }} && make SDL2-static
+
+      - name: Build Fractal SDL on Linux Ubuntu
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # create build output folder
+          mkdir ${{ env.binary-location }}
+
+          # configure Cmake
+          cmake \
+            -S . \
+            -B build \
+            -D CMAKE_BUILD_TYPE=Release
+
+          # build SDL
+          cd ${{ env.binary-location }} && make SDL2-static
+
+      - name: Tar libSDL and Upload to AWS S3
+        shell: bash
+        run: |
+          cd ${{ env.binary-location }}
+
+          if [ "$RUNNER_OS" == "Linux" ]; then
+              tar -zcvf ${{ env.linux-tar-name }} libSDL2.a
+              aws s3 cp ${{ env.linux-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.linux-tar-name }}
+          elif [ "$RUNNER_OS" == "Windows" ]; then
+              tar -zcvf ${{ env.windows-tar-name }} SDL2-static.lib
+              aws s3 cp ${{ env.windows-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.windows-tar-name }}
+          else
+              tar -zcvf ${{ env.macos-tar-name }} libSDL2.a
+              aws s3 cp ${{ env.macos-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.macos-tar-name }}
+          fi
+
+      - name: Tar SDL headers and Upload to AWS S3
+        if: runner.os == 'Linux' # Only run once, as headers are identical on every OS
+        shell: bash
+        run: |
+          tar -zcvf ${{ env.headers-tar-name }} include
+          aws s3 cp ${{ env.headers-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.headers-tar-name }}
+
+  notify-slack:
+    name: Notify Slack
+    needs: [build-and-publish-fractal-sdl]
+    if: success()
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Notify Slack
+        run: |
+          curl -X POST \
+          --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \"Fractal SDL Static Build Deployed to Production via Upload to AWS S3.\", \"icon_emoji\": \":fractal:\"}" \
+          ${{ secrets.SLACK_HOOKS_ENDPOINT }}
