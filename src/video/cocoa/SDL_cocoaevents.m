@@ -428,8 +428,6 @@ CreateApplicationMenus(void)
     windowMenu = [[NSMenu alloc] initWithTitle:@"Window"];
 
     /* Add menu items */
-    [windowMenu addItemWithTitle:@"Close" action:@selector(performClose:) keyEquivalent:@"w"];
-
     [windowMenu addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];
 
     [windowMenu addItemWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""];
