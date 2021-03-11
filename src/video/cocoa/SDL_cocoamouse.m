@@ -420,8 +420,11 @@ Cocoa_HandleMouseWheel(SDL_Window *window, NSEvent *event)
     }
 
     SDL_MouseID mouseID = mouse->mouseID;
-    CGFloat x = -[event deltaX];
-    CGFloat y = [event deltaY];
+
+    // Word has it that scrollingDeltaX of 80 corresponds to
+    // one discrete mouse tick, at least for applications like Chrome.
+    CGFloat x = -[event scrollingDeltaX] / 80;
+    CGFloat y = [event scrollingDeltaY] / 80;
     SDL_MouseWheelDirection direction = SDL_MOUSEWHEEL_NORMAL;
 
     if ([event respondsToSelector:@selector(isDirectionInvertedFromDevice)]) {
@@ -430,15 +433,17 @@ Cocoa_HandleMouseWheel(SDL_Window *window, NSEvent *event)
         }
     }
 
-    if (x > 0) {
-        x = SDL_ceil(x);
-    } else if (x < 0) {
-        x = SDL_floor(x);
-    }
-    if (y > 0) {
-        y = SDL_ceil(y);
-    } else if (y < 0) {
-        y = SDL_floor(y);
+    if (![event hasPreciseScrollingDeltas]) {
+        // According to Apple's discussion in their documentation for scrollingDeltaX at
+        // https://developer.apple.com/documentation/appkit/nsevent/1524505-scrollingdeltax,
+        // we must manually handle the case that precise scrolling deltas were not found.
+
+        // Text-based applications such as terminals will commonly just multiply by the
+        // linewidth. According to
+        // https://linebender.gitbook.io/linebender-graphics-wiki/mouse-wheel#external-mouse-wheel-vs-trackpad,
+        // a value of 32 is correct here.
+        x *= 32;
+        y *= 32;
     }
 
     SDL_SendMouseWheel(window, mouseID, x, y, direction);
