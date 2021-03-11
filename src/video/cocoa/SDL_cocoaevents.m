@@ -98,7 +98,7 @@ static void Cocoa_DispatchEvent(NSEvent *theEvent)
 + (void)registerUserDefaults
 {
     NSDictionary *appDefaults = [[NSDictionary alloc] initWithObjectsAndKeys:
-                                 [NSNumber numberWithBool:NO], @"AppleMomentumScrollSupported",
+                                 [NSNumber numberWithBool:YES], @"AppleMomentumScrollSupported",
                                  [NSNumber numberWithBool:NO], @"ApplePressAndHoldEnabled",
                                  [NSNumber numberWithBool:YES], @"ApplePersistenceIgnoreState",
                                  nil];
