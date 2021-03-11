@@ -7,6 +7,8 @@ This repository is Fractal's fork of SDL, with a few modifications. We forked SD
 
 - Copy `README.txt` to `README.md` so that GitHub will render it nicely, and update it with our continuous integration workflow
 
+- Enable precision scrolling events
+
 - Created a GitHub Actions workflow, `build-and-publish-sdl.yml` to build, test and publish on Windows, macOS and Linux Ubuntu
 
 ## Development
