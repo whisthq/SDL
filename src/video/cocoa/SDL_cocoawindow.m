@@ -1214,14 +1214,12 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
 
 - (void)magnifyWithEvent:(NSEvent *) theEvent
 {
-    CGFloat scroll_amount = [theEvent magnification] / (0.001 * 32 * 80);
+    // The scroll amount is relative to the magnification (a percentage)
+    //     and the current height of the window.
+    //     Visit `Cocoa_HandleMouseWheel` to understand the division by 80
+    CGFloat scroll_amount = [theEvent magnification] * _data->window->h / 80;
     SDL_SendPinch(NULL, [theEvent magnification], scroll_amount);
 }
-
-// - (void)rotateWithEvent:(NSEvent *) theEvent
-// {
-//     SDL_SendMouseMotion(window, mouseID, 0, x, y);
-// }
 
 - (void)handleTouches:(NSTouchPhase) phase withEvent:(NSEvent *) theEvent
 {
