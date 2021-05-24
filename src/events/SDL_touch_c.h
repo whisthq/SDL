@@ -51,6 +51,8 @@ extern int SDL_SendTouch(SDL_TouchID id, SDL_FingerID fingerid, SDL_Window * win
 extern int SDL_SendTouchMotion(SDL_TouchID id, SDL_FingerID fingerid, SDL_Window * window,
                                float x, float y, float pressure);
 
+extern int SDL_SendPinch(SDL_Window* window, float magnification, float scroll_amount);
+
 /* Remove a touch */
 extern void SDL_DelTouch(SDL_TouchID id);
 

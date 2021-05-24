@@ -475,4 +475,19 @@ SDL_TouchQuit(void)
     SDL_GestureQuit();
 }
 
+int
+SDL_SendPinch(SDL_Window* window, float magnification, float scroll_amount)
+{
+    int posted = 0;
+    if (SDL_GetEventState(SDL_PINCH) == SDL_ENABLE) {
+        SDL_Event event;
+        event.pinch.type = SDL_PINCH;
+        event.pinch.magnification = magnification;
+        event.pinch.scroll_amount = scroll_amount;
+        event.pinch.windowID = window ? SDL_GetWindowID(window) : 0;
+        posted = (SDL_PushEvent(&event) > 0);
+    }
+    return posted;
+}
+
 /* vi: set ts=4 sw=4 expandtab: */
