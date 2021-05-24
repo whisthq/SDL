@@ -139,6 +139,7 @@ typedef enum
     SDL_DOLLARGESTURE   = 0x800,
     SDL_DOLLARRECORD,
     SDL_MULTIGESTURE,
+    SDL_PINCH,
 
     /* Clipboard events */
     SDL_CLIPBOARDUPDATE = 0x900, /**< The clipboard changed */
@@ -502,6 +503,19 @@ typedef struct SDL_MultiGestureEvent
 
 
 /**
+ *  \brief Finger Pinch Event (event.pinch.*)
+ */
+typedef struct SDL_PinchEvent
+{
+    Uint32 type;        /**< ::SDL_PINCH */
+    Uint32 timestamp;   /**< In milliseconds, populated using SDL_GetTicks() */
+    float magnification; /***< The magnification factor */
+    float scroll_amount; /***< Equivalent vertical scroll factor */
+    Uint32 windowID;    /**< The window underneath the pinch, if any */
+} SDL_PinchEvent;
+
+
+/**
  * \brief Dollar Gesture Event (event.dgesture.*)
  */
 typedef struct SDL_DollarGestureEvent
@@ -624,6 +638,7 @@ typedef union SDL_Event
     SDL_MultiGestureEvent mgesture;         /**< Gesture event data */
     SDL_DollarGestureEvent dgesture;        /**< Gesture event data */
     SDL_DropEvent drop;                     /**< Drag and drop event data */
+    SDL_PinchEvent pinch;                   /**< Trackpad pinch event data */
 
     /* This is necessary for ABI compatibility between Visual C++ and GCC.
        Visual C++ will respect the push pack pragma and use 52 bytes (size of
