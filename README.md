@@ -11,6 +11,8 @@ This repository is Fractal's fork of SDL, with a few modifications. We forked SD
 
 - Allow `Command+W` to passthrough to the application on macOS, instead of being captured by the "Close Window" shortcut
 
+- Enable capturing macOS pinch gestures using Cocoa, to enable pinch-to-zoom on macOS trackpad devices
+
 - Created a GitHub Actions workflow, `build-and-publish-sdl.yml` to build, test and publish on Windows, macOS and Linux Ubuntu
 
 ## Development
