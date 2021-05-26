@@ -60,6 +60,7 @@ git push origin <current branch>
 
 -   Copy `README.txt` to `README.md` so that GitHub will render it nicely, and update it with our continuous integration workflow
 -   Enable precision scrolling events
+-   Enable capturing macOS pinch gestures using Cocoa, to enable pinch-to-zoom on macOS trackpad devices
 -   Created GitHub Actions workflows, `build-and-test-sdl.yml` and `build-and-publish-sdl.yml` to build, test and publish on Windows, macOS and Linux Ubuntu
 
 ## Building

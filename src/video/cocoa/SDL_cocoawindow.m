@@ -1209,7 +1209,9 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
     // The scroll amount is relative to the magnification (a percentage)
     //     and the current height of the window.
     //     Visit `Cocoa_HandleMouseWheel` to understand the division by 80
-    CGFloat scroll_amount = [theEvent magnification] * _data->window->h / 80;
+    // Ming and Suriya did some manual testing to find that dividing by 2
+    //     yields a more accurate zoom feel, so that's where the 2 comes from
+    CGFloat scroll_amount = [theEvent magnification] * _data->window->h / (80 * 2);
     SDL_SendPinch(NULL, [theEvent magnification], scroll_amount);
 }
 
