@@ -725,6 +725,11 @@ METAL_UpdateTextureInternal(SDL_Renderer * renderer, METAL_TextureData *textured
     [stagingtex autorelease];
 #endif
 
+    // make a new buffer using new buffer with bytes no copy
+    // for YUV, the size of data[i] is height * linesize[i], and linesize[i] is passed as pitch
+    // this doesn't copy anything
+    // make a new texture using new texture with descriptor (see above)
+    // id<MTLBuffer>
     METAL_UploadTextureData(stagingtex, stagingrect, 0, pixels, pitch);
 
     if (data.mtlcmdencoder != nil) {
@@ -811,6 +816,7 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
                     const Uint8 *Uplane, int Upitch,
                     const Uint8 *Vplane, int Vpitch)
 { @autoreleasepool {
+    METAL_RenderData *data = (__bridge METAL_RenderData *) renderer->driverdata;
     METAL_TextureData *texturedata = (__bridge METAL_TextureData *)texture->driverdata;
     const int Uslice = 0;
     const int Vslice = 1;
@@ -821,15 +827,97 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
         return 0;
     }
 
-    if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture, *rect, 0, Yplane, Ypitch) < 0) {
+    // TODO: check that Upitch == Vpitch
+    if (!texturedata.hasdata && METAL_GetStorageMode(texturedata.mtltexture) != MTLStorageModePrivate
+            && METAL_GetStorageMode(texturedata.mtltexture_uv) != MTLStorageModePrivate) {
+        // first upload: just upload directly
+        METAL_UploadTextureData(texturedata.mtltexture, *rect, 0, Yplane, Ypitch);
+        METAL_UploadTextureData(texturedata.mtltexture_uv, UVrect, Uslice, Uplane, Upitch);
+        METAL_UploadTextureData(texturedata.mtltexture_uv, UVrect, Vslice, Vplane, Vpitch);
+        return 0;
+    }
+    int totalLength = rect->h * Ypitch + UVrect.h * (Upitch + Vpitch);
+
+    // make a buffer that wraps the data we've gotten (I assume it's contiguous, we should error if it's not)
+    // TODO: check that the YUV data is contiguous
+    id<MTLBuffer> dataBuffer = [data.mtldevice newBufferWithBytesNoCopy:Yplane
+                                                      length:totalLength
+                                                     options:MTLResourceStorageModeShared
+                                                 deallocator:nil];
+    // we should make two staging textures: one for Y and one for UV
+    // make the texture descriptors
+    MTLTextureDescriptor *Ydesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:texturedata.mtltexture.pixelFormat
+                                                                                     width:rect->w
+                                                                                    height:rect->h
+                                                                                 mipmapped:NO];
+    MTLTextureDescriptor *UVdesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:texturedata.mtltexture_uv.pixelFormat
+                                                                                     width:UVrect.w
+                                                                                    height:UVrect.h
+                                                                                 mipmapped:NO];
+    if (Ydesc == nil || UVdesc == nil) {
         return -1;
     }
-    if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture_uv, UVrect, Uslice, Uplane, Upitch)) {
+
+    // make the staging texture from dataBuffer
+    int YdataLength = rect->h * Ypitch;
+    int UVdataLength = UVrect.h * (Upitch + Vpitch);
+    id<MTLTexture> Ystagingtex = [dataBuffer newTextureWithDescriptor:Ydesc
+                                                            offset:0
+                                                       bytesPerRow:Ypitch];
+    // I assume here that Upitch = Vpitch
+    id<MTLTexture> UVstagingtex = [dataBuffer newTextureWithDescriptor:UVdesc
+                                                             offset:YdataLength
+                                                        bytesPerRow:Upitch];
+    if (Ystagingtex == nil || UVstagingtex == nil) {
         return -1;
     }
-    if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture_uv, UVrect, Vslice, Vplane, Vpitch)) {
-        return -1;
+
+    // make the command encoder
+    if (data.mtlcmdencoder != nil) {
+        [data.mtlcmdencoder endEncoding];
+        data.mtlcmdencoder = nil;
     }
+
+    if (data.mtlcmdbuffer == nil) {
+        data.mtlcmdbuffer = [data.mtlcmdqueue commandBuffer];
+    }
+
+    // queue up all the texture copies
+    id<MTLBlitCommandEncoder> blitcmd = [data.mtlcmdbuffer blitCommandEncoder];
+
+    [blitcmd copyFromTexture:Ystagingtex
+                 sourceSlice:0
+                 sourceLevel:0
+                sourceOrigin:MTLOriginMake(0, 0, 0)
+                  sourceSize:MTLSizeMake(rect->w, rect->h, 1)
+                   toTexture:texturedata.mtltexture
+            destinationSlice:0
+            destinationLevel:0
+           destinationOrigin:MTLOriginMake(rect->x, rect->y, 0)];
+
+    [blitcmd copyFromTexture:UVstagingtex
+                 sourceSlice:0
+                 sourceLevel:0
+                sourceOrigin:MTLOriginMake(0, 0, 0)
+                  sourceSize:MTLSizeMake(UVrect.w, UVrect.h, 1)
+                   toTexture:texturedata.mtltexture_uv
+            destinationSlice:Uslice
+            destinationLevel:0
+           destinationOrigin:MTLOriginMake(UVrect.x, UVrect.y, 0)];
+
+    [blitcmd copyFromTexture:UVstagingtex
+                 sourceSlice:0
+                 sourceLevel:0
+                sourceOrigin:MTLOriginMake(0, 0, 0)
+                  sourceSize:MTLSizeMake(UVrect.w, UVrect.h, 1)
+                   toTexture:texturedata.mtltexture_uv
+            destinationSlice:Vslice
+            destinationLevel:0
+           destinationOrigin:MTLOriginMake(UVrect.x, UVrect.y, 0)];
+    [blitcmd endEncoding];
+
+    [data.mtlcmdbuffer commit];
+    data.mtlcmdbuffer = nil;
 
     texturedata.hasdata = YES;
 
