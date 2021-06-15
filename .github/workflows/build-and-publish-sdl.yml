@@ -161,7 +161,7 @@ jobs:
 
             # Only run once, as headers are identical on every OS
             - name: Tar SDL headers and Upload to AWS S3 (Only on Push Events)
-              if: always && ({{ github.event_name == 'push' }} && runner.os == 'Linux' )
+              if: always() && ({{ github.event_name == 'push' }} && runner.os == 'Linux' )
               shell: bash
               run: |
                   tar -zcvf ${{ env.headers-tar-name }} include
@@ -170,7 +170,7 @@ jobs:
             ###################################################################################
 
             - name: Notify Slack on Workflow Error (Only on Push Events)
-              if: always && (${{ github.event_name == 'push' }} && failure())
+              if: always() && (${{ github.event_name == 'push' }} && failure())
               shell: bash
               run: |
                   curl -X POST \
@@ -180,7 +180,7 @@ jobs:
     notify-slack:
         name: Notify Slack
         needs: [build-and-publish-fractal-sdl]
-        if: always && (${{ github.event_name == 'push' }} && success())
+        if: always() && (${{ github.event_name == 'push' }} && success())
         runs-on: ubuntu-20.04
         steps:
             - name: Notify Slack
