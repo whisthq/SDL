@@ -45,7 +45,7 @@ jobs:
 
     steps:
         ################################# CONFIG STEPS START ###############################
-        
+
         - name: Checkout Git Repository
           uses: actions/checkout@v2
 
