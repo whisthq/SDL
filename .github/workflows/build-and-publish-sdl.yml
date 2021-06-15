@@ -161,7 +161,7 @@ jobs:
 
             # Only run once, as headers are identical on every OS
             - name: Tar SDL headers and Upload to AWS S3 (Only on Push Events)
-              if: ${{ github.event_name == 'push' }} && runner.os == 'Linux'
+              if: ${{ github.event_name == 'push' }} && ${{ runner.os == 'Linux' }}
               shell: bash
               run: |
                   tar -zcvf ${{ env.headers-tar-name }} include
@@ -170,17 +170,17 @@ jobs:
             ###################################################################################
 
             - name: Notify Slack on Workflow Error (Only on Push Events)
-              if: ${{ github.event_name == 'push' }} && failure()
+              if: ${{ github.event_name == 'push' }} && ${{ failure() }}
               shell: bash
               run: |
                   curl -X POST \
-                  --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \"@releases :rotating_light: Failed to deploy SDL libraries to AWS S3, investigate immediately :rotating_light:\", \"icon_emoji\": \":fractal:\"}" \
+                  --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \":rotating_light: Failed to deploy SDL libraries to AWS S3, investigate immediately :rotating_light:\", \"icon_emoji\": \":fractal:\"}" \
                   ${{ secrets.SLACK_HOOKS_ENDPOINT }}
 
     notify-slack:
         name: Notify Slack
         needs: [build-and-publish-fractal-sdl]
-        if: ${{ github.event_name == 'push' }} && success()
+        if: ${{ github.event_name == 'push' }} && ${{ success() }}
         runs-on: ubuntu-20.04
         steps:
             - name: Notify Slack
