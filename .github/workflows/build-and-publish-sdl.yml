@@ -42,13 +42,13 @@ jobs:
         headers-tar-name: fractal-sdl2-headers.tar.gz
         s3-bucket-region: us-east-1
         s3-bucket-uri: s3://fractal-protocol-shared-libs
-
+        
     steps:
         ################################# CONFIG STEPS START ###############################
-
+        
         - name: Checkout Git Repository
           uses: actions/checkout@v2
-
+        
         # For uploading the compiled libs to AWS S3
         - name: Configure AWS S3 CLI
           uses: aws-actions/configure-aws-credentials@v1
