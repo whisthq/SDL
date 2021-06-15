@@ -20,18 +20,18 @@ on:
 
 jobs:
     build-and-publish-fractal-sdl:
-      name: ${{ matrix.config.name }}
-      runs-on: ${{ matrix.config.os }}
+        name: ${{ matrix.config.name }}
+        runs-on: ${{ matrix.config.os }}
 
-      strategy:
-          matrix:
-              config:
-                  - name: "Build and Publish Fractal SDL on Windows"
-                    os: windows-2016 # Same OS as Windows 10
-                  - name: "Build and Publish Fractal SDL on macOS"
-                    os: macos-10.14 # Xcode and Homebrew come preinstalled
-                  - name: "Build and Publish Fractal SDL on Linux Ubuntu"
-                    os: ubuntu-20.04
+        strategy:
+            matrix:
+                config:
+                    - name: "Build and Publish Fractal SDL on Windows"
+                      os: windows-2016 # Same OS as Windows 10
+                    - name: "Build and Publish Fractal SDL on macOS"
+                      os: macos-10.14 # Xcode and Homebrew come preinstalled
+                    - name: "Build and Publish Fractal SDL on Linux Ubuntu"
+                      os: ubuntu-20.04
 
     # Environment variables for the deployment
     env:
@@ -53,9 +53,9 @@ jobs:
         - name: Configure AWS S3 CLI
           uses: aws-actions/configure-aws-credentials@v1
           with:
-            aws-access-key-id: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
-            aws-secret-access-key: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
-            aws-region: ${{ env.s3-bucket-region }}
+              aws-access-key-id: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+              aws-secret-access-key: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+              aws-region: ${{ env.s3-bucket-region }}
 
         ###################################################################################
         ################################ WINDOWS STEPS START ##############################
@@ -68,20 +68,20 @@ jobs:
           if: runner.os == 'Windows'
           shell: cmd
           run: |
-            REM create build output folder
-            mkdir ${{ env.binary-location }}
+              REM create build output folder
+              mkdir ${{ env.binary-location }}
 
-            REM configure Cmake
-            cmake ^
-              -S . ^
-              -B build ^
-              -D HAVE_LIBC=ON ^
-              -D DIRECTX=OFF ^
-              -D CMAKE_BUILD_TYPE=Release ^
-              -G "NMake Makefiles"
+              REM configure Cmake
+              cmake ^
+                -S . ^
+                -B build ^
+                -D HAVE_LIBC=ON ^
+                -D DIRECTX=OFF ^
+                -D CMAKE_BUILD_TYPE=Release ^
+                -G "NMake Makefiles"
 
-            REM build SDL
-            cd ${{ env.binary-location }} && nmake SDL2-static
+              REM build SDL
+              cd ${{ env.binary-location }} && nmake SDL2-static
 
         ###################################################################################
         ################################# MACOS STEPS START ###############################
@@ -92,27 +92,27 @@ jobs:
           env:
               FRACTAL_OSX_SYSROOT: "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk" # Necessary for building on macOS (protocol does NOT support 10.15+ SDKs)
           run: |
-            # Explicitly retrieve macOS 10.14 SDK
-            wget https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz
+              # Explicitly retrieve macOS 10.14 SDK
+              wget https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz
 
-            # Untar it
-            xz -d MacOSX10.14.sdk.tar.xz
-            tar -xf MacOSX10.14.sdk.tar
+              # Untar it
+              xz -d MacOSX10.14.sdk.tar.xz
+              tar -xf MacOSX10.14.sdk.tar
 
-            # Move it to the right folder for building SDL
-            mv MacOSX10.14.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
+              # Move it to the right folder for building SDL
+              mv MacOSX10.14.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
 
-            # create build output folder
-            mkdir ${{ env.binary-location }}
+              # create build output folder
+              mkdir ${{ env.binary-location }}
 
-            # configure Cmake
-            cmake \
-              -S . \
-              -B build \
-              -D CMAKE_BUILD_TYPE=Release
+              # configure Cmake
+              cmake \
+                -S . \
+                -B build \
+                -D CMAKE_BUILD_TYPE=Release
 
-            # build SDL
-            cd ${{ env.binary-location }} && make SDL2-static
+              # build SDL
+              cd ${{ env.binary-location }} && make SDL2-static
 
         ###################################################################################
         ############################# LINUX UBUNTU STEPS START ############################
@@ -126,17 +126,17 @@ jobs:
           if: runner.os == 'Linux'
           shell: bash
           run: |
-            # create build output folder
-            mkdir ${{ env.binary-location }}
+              # create build output folder
+              mkdir ${{ env.binary-location }}
 
-            # configure Cmake
-            cmake \
-              -S . \
-              -B build \
-              -D CMAKE_BUILD_TYPE=Release
+              # configure Cmake
+              cmake \
+                -S . \
+                -B build \
+                -D CMAKE_BUILD_TYPE=Release
 
-            # build SDL
-            cd ${{ env.binary-location }} && make SDL2-static
+              # build SDL
+              cd ${{ env.binary-location }} && make SDL2-static
 
         ###################################################################################
         ################################# PUBLISH STEPS START #############################
@@ -146,26 +146,26 @@ jobs:
           if: ${{ github.event_name == 'push' }}
           shell: bash
           run: |
-            cd ${{ env.binary-location }}
+              cd ${{ env.binary-location }}
 
-            if [ "$RUNNER_OS" == "Linux" ]; then
-                tar -zcvf ${{ env.linux-tar-name }} libSDL2.a
-                aws s3 cp ${{ env.linux-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.linux-tar-name }}
-            elif [ "$RUNNER_OS" == "Windows" ]; then
-                tar -zcvf ${{ env.windows-tar-name }} SDL2-static.lib
-                aws s3 cp ${{ env.windows-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.windows-tar-name }}
-            else
-                tar -zcvf ${{ env.macos-tar-name }} libSDL2.a
-                aws s3 cp ${{ env.macos-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.macos-tar-name }}
-            fi
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                  tar -zcvf ${{ env.linux-tar-name }} libSDL2.a
+                  aws s3 cp ${{ env.linux-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.linux-tar-name }}
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                  tar -zcvf ${{ env.windows-tar-name }} SDL2-static.lib
+                  aws s3 cp ${{ env.windows-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.windows-tar-name }}
+              else
+                  tar -zcvf ${{ env.macos-tar-name }} libSDL2.a
+                  aws s3 cp ${{ env.macos-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.macos-tar-name }}
+              fi
 
         # Only run once, as headers are identical on every OS
         - name: Tar SDL headers and Upload to AWS S3 (Only on Push Events)
           if: ${{ github.event_name == 'push' }} && runner.os == 'Linux'
           shell: bash
           run: |
-            tar -zcvf ${{ env.headers-tar-name }} include
-            aws s3 cp ${{ env.headers-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.headers-tar-name }}
+              tar -zcvf ${{ env.headers-tar-name }} include
+              aws s3 cp ${{ env.headers-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.headers-tar-name }}
 
         ###################################################################################
 
