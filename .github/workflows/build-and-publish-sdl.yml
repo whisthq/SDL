@@ -161,7 +161,7 @@ jobs:
 
             # Only run once, as headers are identical on every OS
             - name: Tar SDL headers and Upload to AWS S3 (Only on Push Events)
-              if: always() && ({{ github.event_name == 'push' }} && runner.os == 'Linux' )
+              if: always() && (${{ github.event_name == 'push' }} && runner.os == 'Linux' )
               shell: bash
               run: |
                   tar -zcvf ${{ env.headers-tar-name }} include
