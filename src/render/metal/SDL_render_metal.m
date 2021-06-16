@@ -832,6 +832,7 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
     if (Upitch != Vpitch) {
         return -1;
     }
+  
     if (!texturedata.hasdata && METAL_GetStorageMode(texturedata.mtltexture) != MTLStorageModePrivate
             && METAL_GetStorageMode(texturedata.mtltexture_uv) != MTLStorageModePrivate) {
         // The SDL texture has no data, so we just upload the image data directly into the texture
@@ -840,9 +841,11 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
         METAL_UploadTextureData(texturedata.mtltexture_uv, UVrect, Vslice, Vplane, Vpitch);
         return 0;
     }
+  
     int totalLength = rect->h * Ypitch + UVrect.h * (Upitch + Vpitch);
     int YdataLength= rect->h * Ypitch;
     int UdataLength = UVrect.h * Upitch;
+  
     /* Ensure that the YUV data is continuous */
     if (Yplane + YdataLength != Uplane || Uplane + UdataLength != Vplane) {
         return -1;
@@ -850,31 +853,35 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
 
     // make a buffer that wraps the data we've gotten
     id<MTLBuffer> dataBuffer = [data.mtldevice newBufferWithBytesNoCopy:Yplane
-                                                      length:totalLength
-                                                     options:MTLResourceStorageModeShared
-                                                 deallocator:nil];
-    // we should make two staging textures: one for Y and one for UV
+                                                                 length:totalLength
+                                                                options:MTLResourceStorageModeShared
+                                                            deallocator:nil];
+  
+    // we need to make two staging textures: one for Y and one for UV
     // make the texture descriptors
     MTLTextureDescriptor *Ydesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:texturedata.mtltexture.pixelFormat
                                                                                      width:rect->w
                                                                                     height:rect->h
                                                                                  mipmapped:NO];
     MTLTextureDescriptor *UVdesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:texturedata.mtltexture_uv.pixelFormat
-                                                                                     width:UVrect.w
-                                                                                    height:UVrect.h
-                                                                                 mipmapped:NO];
+                                                                                      width:UVrect.w
+                                                                                     height:UVrect.h
+                                                                                  mipmapped:NO];
+  
     if (Ydesc == nil || UVdesc == nil) {
         return -1;
     }
 
     // make the staging texture from dataBuffer
     id<MTLTexture> Ystagingtex = [dataBuffer newTextureWithDescriptor:Ydesc
-                                                            offset:0
-                                                       bytesPerRow:Ypitch];
+                                                               offset:0
+                                                          bytesPerRow:Ypitch];
+  
     // We verified above that Upitch = Vpitch
     id<MTLTexture> UVstagingtex = [dataBuffer newTextureWithDescriptor:UVdesc
-                                                             offset:YdataLength
-                                                        bytesPerRow:Upitch];
+                                                                offset:YdataLength
+                                                           bytesPerRow:Upitch];
+  
     if (Ystagingtex == nil || UVstagingtex == nil) {
         return -1;
     }
