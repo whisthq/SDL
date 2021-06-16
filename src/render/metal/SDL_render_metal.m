@@ -823,16 +823,17 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
     const int Vslice = 1;
     SDL_Rect UVrect = {rect->x / 2, rect->y / 2, (rect->w + 1) / 2, (rect->h + 1) / 2};
 
-    /* Bail out if we're supposed to update an empty rectangle */
+    // Bail out if we're supposed to update an empty rectangle
     if (rect->w <= 0 || rect->h <= 0) {
         return 0;
     }
 
-    /* Bail out if U and V linesizes disagree */
+    // Bail out if U and V linesizes disagree
     if (Upitch != Vpitch) {
         return -1;
     }
   
+    // Check whether the texture has data
     if (!texturedata.hasdata && METAL_GetStorageMode(texturedata.mtltexture) != MTLStorageModePrivate
             && METAL_GetStorageMode(texturedata.mtltexture_uv) != MTLStorageModePrivate) {
         // The SDL texture has no data, so we just upload the image data directly into the texture
@@ -842,23 +843,23 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
         return 0;
     }
   
+    // Get the length of the texture data
     int totalLength = rect->h * Ypitch + UVrect.h * (Upitch + Vpitch);
     int YdataLength= rect->h * Ypitch;
     int UdataLength = UVrect.h * Upitch;
   
-    /* Ensure that the YUV data is continuous */
+    // Ensure that the YUV data is continuous
     if (Yplane + YdataLength != Uplane || Uplane + UdataLength != Vplane) {
         return -1;
     }
 
-    // make a buffer that wraps the data we've gotten
+    // Make a buffer that wraps the data we've gotten
     id<MTLBuffer> dataBuffer = [data.mtldevice newBufferWithBytesNoCopy:Yplane
                                                                  length:totalLength
                                                                 options:MTLResourceStorageModeShared
                                                             deallocator:nil];
   
-    // we need to make two staging textures: one for Y and one for UV
-    // make the texture descriptors
+    // We need to make two staging textures: one for Y and one for UV, this make the texture descriptors
     MTLTextureDescriptor *Ydesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:texturedata.mtltexture.pixelFormat
                                                                                      width:rect->w
                                                                                     height:rect->h
@@ -868,11 +869,12 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
                                                                                      height:UVrect.h
                                                                                   mipmapped:NO];
   
+    // Check that the descriptors are initialized
     if (Ydesc == nil || UVdesc == nil) {
         return -1;
     }
 
-    // make the staging texture from dataBuffer
+    // Make the staging texture from dataBuffer
     id<MTLTexture> Ystagingtex = [dataBuffer newTextureWithDescriptor:Ydesc
                                                                offset:0
                                                           bytesPerRow:Ypitch];
@@ -882,6 +884,7 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
                                                                 offset:YdataLength
                                                            bytesPerRow:Upitch];
   
+    // Check that the textures are initialized
     if (Ystagingtex == nil || UVstagingtex == nil) {
         return -1;
     }
@@ -892,13 +895,15 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
         data.mtlcmdencoder = nil;
     }
 
+    // Queue a new buffer as needed
     if (data.mtlcmdbuffer == nil) {
         data.mtlcmdbuffer = [data.mtlcmdqueue commandBuffer];
     }
 
-    // queue up all the texture copies
+    // Queue up all the texture copies
     id<MTLBlitCommandEncoder> blitcmd = [data.mtlcmdbuffer blitCommandEncoder];
 
+    // Copy the textures over
     [blitcmd copyFromTexture:Ystagingtex
                  sourceSlice:0
                  sourceLevel:0
