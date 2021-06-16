@@ -725,11 +725,6 @@ METAL_UpdateTextureInternal(SDL_Renderer * renderer, METAL_TextureData *textured
     [stagingtex autorelease];
 #endif
 
-    // make a new buffer using new buffer with bytes no copy
-    // for YUV, the size of data[i] is height * linesize[i], and linesize[i] is passed as pitch
-    // this doesn't copy anything
-    // make a new texture using new texture with descriptor (see above)
-    // id<MTLBuffer>
     METAL_UploadTextureData(stagingtex, stagingrect, 0, pixels, pitch);
 
     if (data.mtlcmdencoder != nil) {
@@ -816,6 +811,12 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
                     const Uint8 *Uplane, int Upitch,
                     const Uint8 *Vplane, int Vpitch)
 { @autoreleasepool {
+    /* Modified by Fractal
+     * FFmpeg gives us contiguous YUV data, and we modified FFmpeg to ensure it is page-aligned.
+     * We create a MTLBuffer that wraps the YUV data instead of copying it.
+     * This gets rid of one copy operation.
+     * The setup code comes from METAL_UpdateTextureInternal (below).
+     */
     METAL_RenderData *data = (__bridge METAL_RenderData *) renderer->driverdata;
     METAL_TextureData *texturedata = (__bridge METAL_TextureData *)texture->driverdata;
     const int Uslice = 0;
@@ -827,19 +828,27 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
         return 0;
     }
 
-    // TODO: check that Upitch == Vpitch
+    /* Bail out if U and V linesizes disagree */
+    if (Upitch != Vpitch) {
+        return -1;
+    }
     if (!texturedata.hasdata && METAL_GetStorageMode(texturedata.mtltexture) != MTLStorageModePrivate
             && METAL_GetStorageMode(texturedata.mtltexture_uv) != MTLStorageModePrivate) {
-        // first upload: just upload directly
+        // The SDL texture has no data, so we just upload the image data directly into the texture
         METAL_UploadTextureData(texturedata.mtltexture, *rect, 0, Yplane, Ypitch);
         METAL_UploadTextureData(texturedata.mtltexture_uv, UVrect, Uslice, Uplane, Upitch);
         METAL_UploadTextureData(texturedata.mtltexture_uv, UVrect, Vslice, Vplane, Vpitch);
         return 0;
     }
     int totalLength = rect->h * Ypitch + UVrect.h * (Upitch + Vpitch);
+    int YdataLength= rect->h * Ypitch;
+    int UdataLength = UVrect.h * Upitch;
+    /* Ensure that the YUV data is continuous */
+    if (Yplane + YdataLength != Uplane || Uplane + UdataLength != Vplane) {
+        return -1;
+    }
 
-    // make a buffer that wraps the data we've gotten (I assume it's contiguous, we should error if it's not)
-    // TODO: check that the YUV data is contiguous
+    // make a buffer that wraps the data we've gotten
     id<MTLBuffer> dataBuffer = [data.mtldevice newBufferWithBytesNoCopy:Yplane
                                                       length:totalLength
                                                      options:MTLResourceStorageModeShared
@@ -859,12 +868,10 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
     }
 
     // make the staging texture from dataBuffer
-    int YdataLength = rect->h * Ypitch;
-    int UVdataLength = UVrect.h * (Upitch + Vpitch);
     id<MTLTexture> Ystagingtex = [dataBuffer newTextureWithDescriptor:Ydesc
                                                             offset:0
                                                        bytesPerRow:Ypitch];
-    // I assume here that Upitch = Vpitch
+    // We verified above that Upitch = Vpitch
     id<MTLTexture> UVstagingtex = [dataBuffer newTextureWithDescriptor:UVdesc
                                                              offset:YdataLength
                                                         bytesPerRow:Upitch];
@@ -872,7 +879,7 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
         return -1;
     }
 
-    // make the command encoder
+    // Set up the command encoder and buffer, which queue events (copies for us) for GPU to execute
     if (data.mtlcmdencoder != nil) {
         [data.mtlcmdencoder endEncoding];
         data.mtlcmdencoder = nil;
