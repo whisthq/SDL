@@ -811,25 +811,132 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
                     const Uint8 *Uplane, int Upitch,
                     const Uint8 *Vplane, int Vpitch)
 { @autoreleasepool {
+    /* Modified by Fractal
+     * FFmpeg gives us contiguous YUV data, and we modified FFmpeg to ensure it is page-aligned.
+     * We create a MTLBuffer that wraps the YUV data instead of copying it.
+     * This gets rid of one copy operation.
+     * The setup code comes from METAL_UpdateTextureInternal (below).
+     */
+    METAL_RenderData *data = (__bridge METAL_RenderData *) renderer->driverdata;
     METAL_TextureData *texturedata = (__bridge METAL_TextureData *)texture->driverdata;
     const int Uslice = 0;
     const int Vslice = 1;
     SDL_Rect UVrect = {rect->x / 2, rect->y / 2, (rect->w + 1) / 2, (rect->h + 1) / 2};
 
-    /* Bail out if we're supposed to update an empty rectangle */
+    // Bail out if we're supposed to update an empty rectangle
     if (rect->w <= 0 || rect->h <= 0) {
         return 0;
     }
 
-    if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture, *rect, 0, Yplane, Ypitch) < 0) {
+    // Bail out if U and V linesizes disagree
+    if (Upitch != Vpitch) {
         return -1;
     }
-    if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture_uv, UVrect, Uslice, Uplane, Upitch)) {
+  
+    // Check whether the texture has data
+    if (!texturedata.hasdata && METAL_GetStorageMode(texturedata.mtltexture) != MTLStorageModePrivate
+            && METAL_GetStorageMode(texturedata.mtltexture_uv) != MTLStorageModePrivate) {
+        // The SDL texture has no data, so we just upload the image data directly into the texture
+        METAL_UploadTextureData(texturedata.mtltexture, *rect, 0, Yplane, Ypitch);
+        METAL_UploadTextureData(texturedata.mtltexture_uv, UVrect, Uslice, Uplane, Upitch);
+        METAL_UploadTextureData(texturedata.mtltexture_uv, UVrect, Vslice, Vplane, Vpitch);
+        return 0;
+    }
+  
+    // Get the length of the texture data
+    int totalLength = rect->h * Ypitch + UVrect.h * (Upitch + Vpitch);
+    int YdataLength= rect->h * Ypitch;
+    int UdataLength = UVrect.h * Upitch;
+  
+    // Ensure that the YUV data is continuous
+    if (Yplane + YdataLength != Uplane || Uplane + UdataLength != Vplane) {
         return -1;
     }
-    if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture_uv, UVrect, Vslice, Vplane, Vpitch)) {
+
+    // Make a buffer that wraps the data we've gotten
+    id<MTLBuffer> dataBuffer = [data.mtldevice newBufferWithBytesNoCopy:Yplane
+                                                                 length:totalLength
+                                                                options:MTLResourceStorageModeShared
+                                                            deallocator:nil];
+  
+    // We need to make two staging textures: one for Y and one for UV, this make the texture descriptors
+    MTLTextureDescriptor *Ydesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:texturedata.mtltexture.pixelFormat
+                                                                                     width:rect->w
+                                                                                    height:rect->h
+                                                                                 mipmapped:NO];
+    MTLTextureDescriptor *UVdesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:texturedata.mtltexture_uv.pixelFormat
+                                                                                      width:UVrect.w
+                                                                                     height:UVrect.h
+                                                                                  mipmapped:NO];
+  
+    // Check that the descriptors are initialized
+    if (Ydesc == nil || UVdesc == nil) {
         return -1;
     }
+
+    // Make the staging texture from dataBuffer
+    id<MTLTexture> Ystagingtex = [dataBuffer newTextureWithDescriptor:Ydesc
+                                                               offset:0
+                                                          bytesPerRow:Ypitch];
+  
+    // We verified above that Upitch = Vpitch
+    id<MTLTexture> UVstagingtex = [dataBuffer newTextureWithDescriptor:UVdesc
+                                                                offset:YdataLength
+                                                           bytesPerRow:Upitch];
+  
+    // Check that the textures are initialized
+    if (Ystagingtex == nil || UVstagingtex == nil) {
+        return -1;
+    }
+
+    // Set up the command encoder and buffer, which queue events (copies for us) for GPU to execute
+    if (data.mtlcmdencoder != nil) {
+        [data.mtlcmdencoder endEncoding];
+        data.mtlcmdencoder = nil;
+    }
+
+    // Queue a new buffer as needed
+    if (data.mtlcmdbuffer == nil) {
+        data.mtlcmdbuffer = [data.mtlcmdqueue commandBuffer];
+    }
+
+    // Queue up all the texture copies
+    id<MTLBlitCommandEncoder> blitcmd = [data.mtlcmdbuffer blitCommandEncoder];
+
+    // Copy the textures over
+    [blitcmd copyFromTexture:Ystagingtex
+                 sourceSlice:0
+                 sourceLevel:0
+                sourceOrigin:MTLOriginMake(0, 0, 0)
+                  sourceSize:MTLSizeMake(rect->w, rect->h, 1)
+                   toTexture:texturedata.mtltexture
+            destinationSlice:0
+            destinationLevel:0
+           destinationOrigin:MTLOriginMake(rect->x, rect->y, 0)];
+
+    [blitcmd copyFromTexture:UVstagingtex
+                 sourceSlice:0
+                 sourceLevel:0
+                sourceOrigin:MTLOriginMake(0, 0, 0)
+                  sourceSize:MTLSizeMake(UVrect.w, UVrect.h, 1)
+                   toTexture:texturedata.mtltexture_uv
+            destinationSlice:Uslice
+            destinationLevel:0
+           destinationOrigin:MTLOriginMake(UVrect.x, UVrect.y, 0)];
+
+    [blitcmd copyFromTexture:UVstagingtex
+                 sourceSlice:0
+                 sourceLevel:0
+                sourceOrigin:MTLOriginMake(0, 0, 0)
+                  sourceSize:MTLSizeMake(UVrect.w, UVrect.h, 1)
+                   toTexture:texturedata.mtltexture_uv
+            destinationSlice:Vslice
+            destinationLevel:0
+           destinationOrigin:MTLOriginMake(UVrect.x, UVrect.y, 0)];
+    [blitcmd endEncoding];
+
+    [data.mtlcmdbuffer commit];
+    data.mtlcmdbuffer = nil;
 
     texturedata.hasdata = YES;
 
