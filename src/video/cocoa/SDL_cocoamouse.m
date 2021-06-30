@@ -425,8 +425,8 @@ Cocoa_HandleMouseWheel(SDL_Window *window, NSEvent *event)
     // one discrete mouse tick, at least for applications like Chrome.
     // Serina, Ming, and Suriya did some manual testing to find that multiplying
     //     by 1.5 yields a more accurate zoom feel, so that's where the 1.5 comes from
-    CGFloat x = -[event scrollingDeltaX] / 80 * 1.5;
-    CGFloat y = [event scrollingDeltaY] / 80 * 1.5;
+    CGFloat x = -([event scrollingDeltaX] / 80) * 1.5;
+    CGFloat y = ([event scrollingDeltaY] / 80) * 1.5;
     SDL_MouseWheelDirection direction = SDL_MOUSEWHEEL_NORMAL;
 
     if ([event respondsToSelector:@selector(isDirectionInvertedFromDevice)]) {
