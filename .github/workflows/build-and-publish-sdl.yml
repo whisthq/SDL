@@ -117,10 +117,10 @@ jobs:
             ###################################################################################
             ############################# LINUX UBUNTU STEPS START ############################
 
-            - name: On Linux, Install ALSA Audio Library
+            - name: On Linux, Install SDL Dependencies
               if: runner.os == 'Linux'
               shell: bash
-              run: sudo apt-get install libasound2-dev
+              run: sudo apt-get install libasound2-dev xorg-dev
 
             - name: Build Fractal SDL on Linux Ubuntu
               if: runner.os == 'Linux'
