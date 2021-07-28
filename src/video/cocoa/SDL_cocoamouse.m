@@ -449,7 +449,7 @@ Cocoa_HandleMouseWheel(SDL_Window *window, NSEvent *event)
     }
 
     // Based on the momentumPhase of the scroll, record whether the scroll event is part of a momentum
-    //     scroll or not.
+    //     scroll or not by setting the current mouse scroll momentum phase.
     // Reference: https://developer.apple.com/documentation/appkit/nsevent/1525439-momentumphase?language=objc
     switch ([event momentumPhase]) {
         case NSEventPhaseBegan: {
