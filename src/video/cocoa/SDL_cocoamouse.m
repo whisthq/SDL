@@ -424,7 +424,7 @@ Cocoa_HandleMouseWheel(SDL_Window *window, NSEvent *event)
     // Word has it that scrollingDeltaX of 80 corresponds to
     // one discrete mouse tick, at least for applications like Chrome.
     // Serina, Ming, and Suriya did some manual testing to find that multiplying
-    //     by 1.5 yields a more accurate zoom feel, so that's where the 1.5 comes from
+    //     by 1.5 yields a more accurate scroll feel, so that's where the 1.5 comes from
     CGFloat x = -([event scrollingDeltaX] / 80) * 1.5;
     CGFloat y = ([event scrollingDeltaY] / 80) * 1.5;
     SDL_MouseWheelDirection direction = SDL_MOUSEWHEEL_NORMAL;
@@ -446,6 +446,31 @@ Cocoa_HandleMouseWheel(SDL_Window *window, NSEvent *event)
         // a value of 32 is correct here.
         x *= 32;
         y *= 32;
+    }
+
+    // Based on the momentumPhase of the scroll, record whether the scroll event is part of a momentum
+    //     scroll or not.
+    // Reference: https://developer.apple.com/documentation/appkit/nsevent/1525439-momentumphase?language=objc
+    switch ([event momentumPhase]) {
+        case NSEventPhaseBegan: {
+            mouse->scroll_momentum_phase = SDL_MOUSEWHEEL_MOMENTUM_BEGIN;
+            break;
+        }
+        case NSEventPhaseStationary:
+        case NSEventPhaseChanged: {
+            mouse->scroll_momentum_phase = SDL_MOUSEWHEEL_MOMENTUM_ACTIVE;
+            break;
+        }
+        case NSEventPhaseEnded:
+        case NSEventPhaseCancelled: {
+            mouse->scroll_momentum_phase = SDL_MOUSEWHEEL_MOMENTUM_END;
+            break;
+        }
+        case NSEventPhaseNone:
+        case NSEventPhaseMayBegin: {
+            mouse->scroll_momentum_phase = SDL_MOUSEWHEEL_MOMENTUM_NONE;
+            break;
+        }
     }
 
     SDL_SendMouseWheel(window, mouseID, x, y, direction);
