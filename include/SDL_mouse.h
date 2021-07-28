@@ -69,6 +69,17 @@ typedef enum
     SDL_MOUSEWHEEL_FLIPPED    /**< The scroll direction is flipped / natural */
 } SDL_MouseWheelDirection;
 
+/**
+ * \brief Scroll momentum phase
+ */
+typedef enum
+{
+    SDL_MOUSEWHEEL_MOMENTUM_NONE,    /**< Not a momentum scroll (e.g. fingers are touching mouse) */
+    SDL_MOUSEWHEEL_MOMENTUM_BEGIN,   /**< A momentum scroll has begun */
+    SDL_MOUSEWHEEL_MOMENTUM_ACTIVE,  /**< A momentum scroll is in effect */
+    SDL_MOUSEWHEEL_MOMENTUM_END,     /**< A momentum scroll has completed */
+} SDL_MouseWheelMomentumPhase;
+
 /* Function prototypes */
 
 /**

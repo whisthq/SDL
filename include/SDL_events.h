@@ -304,6 +304,7 @@ typedef struct SDL_MouseWheelEvent
     float preciseX;     /**< The precise, floating-point amount scrolled horizontally, positive to the right and negative to the left */
     float preciseY;     /**< The precise, floating-point amount scrolled vertically, positive away from the user and negative towards the user */
     Uint32 direction;   /**< Set to one of the SDL_MOUSEWHEEL_* defines. When FLIPPED the values in X and Y will be opposite. Multiply by -1 to change them back */
+    SDL_MouseWheelMomentumPhase momentum_phase; /**< The momentum phase of the scroll (NONE for non-momentum scrolls) */
 } SDL_MouseWheelEvent;
 
 /**

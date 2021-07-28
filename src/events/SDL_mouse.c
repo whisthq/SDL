@@ -655,6 +655,7 @@ SDL_SendMouseWheel(SDL_Window * window, SDL_MouseID mouseID, float x, float y, S
         event.wheel.x = integral_x;
         event.wheel.y = integral_y;
         event.wheel.direction = (Uint32)direction;
+        event.wheel.momentum_phase = mouse->scroll_momentum_phase;
         posted = (SDL_PushEvent(&event) > 0);
     }
     return posted;
