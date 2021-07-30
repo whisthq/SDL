@@ -632,6 +632,16 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
     SDL_SendWindowEvent(_data->window, SDL_WINDOWEVENT_RESTORED, 0, 0);
 }
 
+- (void)windowDidChangeOcclusionState:(NSNotification *)aNotification
+{
+    if ([[aNotification object] occlusionState]  &  NSWindowOcclusionStateVisible) {
+        SDL_SendWindowEvent(_data->window, SDL_WINDOWEVENT_UNOCCLUDED, 0, 0);
+    }
+    else {
+        SDL_SendWindowEvent(_data->window, SDL_WINDOWEVENT_OCCLUDED, 0, 0);
+    }
+}
+
 - (void)windowDidBecomeKey:(NSNotification *)aNotification
 {
     SDL_Window *window = _data->window;
