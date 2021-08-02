@@ -17,6 +17,8 @@ This repository is Fractal's fork of SDL, with a few modifications. We forked SD
 
 - Reduce the SDL Metal implementation of updateYUVtexture from two data copies when combining with FFmpeg (FFmpeg &rarr; Staging Texture &rarr; Actual Texture) to one copy (FFmpeg &rarr; Actual Texture). This feature requires FFmpeg `av_malloc` to be pagesize-aligned, which is a modification we made on our own internal FFmpeg fork. This feature also modifies SDL to create one command encoder rather than three
 
+- Added SDL events for detection window occlusion on macOS
+
 - Created a GitHub Actions workflow, `build-and-publish-sdl.yml` to build, test and publish on Windows, macOS and Linux Ubuntu
 
 ## Development
