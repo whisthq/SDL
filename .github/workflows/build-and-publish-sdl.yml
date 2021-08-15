@@ -27,9 +27,9 @@ jobs:
             matrix:
                 config:
                     - name: "Build and Publish Fractal SDL on Windows"
-                      os: windows-2016 # Same OS as Windows 10
+                      os: windows-2019 # Same OS as Windows 10
                     - name: "Build and Publish Fractal SDL on macOS"
-                      os: macos-10.14 # Xcode and Homebrew come preinstalled
+                      os: macos-10.15 # Xcode and Homebrew come preinstalled
                     - name: "Build and Publish Fractal SDL on Linux Ubuntu"
                       os: ubuntu-20.04
 
@@ -88,20 +88,9 @@ jobs:
 
             - name: Build Fractal SDL on macOS
               if: runner.os == 'macOS'
-              shell: bash
               env:
-                  FRACTAL_OSX_SYSROOT: "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk" # Necessary for building on macOS (protocol does NOT support 10.15+ SDKs)
+                  FRACTAL_OSX_SYSROOT: "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
               run: |
-                  # Explicitly retrieve macOS 10.14 SDK
-                  wget https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz
-
-                  # Untar it
-                  xz -d MacOSX10.14.sdk.tar.xz
-                  tar -xf MacOSX10.14.sdk.tar
-
-                  # Move it to the right folder for building SDL
-                  mv MacOSX10.14.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
-
                   # create build output folder
                   mkdir ${{ env.binary-location }}
 
@@ -119,12 +108,10 @@ jobs:
 
             - name: On Linux, Install SDL Dependencies
               if: runner.os == 'Linux'
-              shell: bash
               run: sudo apt-get install libasound2-dev xorg-dev
 
             - name: Build Fractal SDL on Linux Ubuntu
               if: runner.os == 'Linux'
-              shell: bash
               run: |
                   # create build output folder
                   mkdir ${{ env.binary-location }}
@@ -144,7 +131,7 @@ jobs:
             # Only publish to AWS S3 on Push/Workflow_dispatch events (code merged into `main`), PRs only build to test
             - name: Tar libSDL and Upload to AWS S3 (Only on Push Events)
               if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
-              shell: bash
+              shell: bash --noprofile --norc -eo pipefail {0}
               run: |
                   cd ${{ env.binary-location }}
 
@@ -162,7 +149,6 @@ jobs:
             # Only run once, as headers are identical on every OS
             - name: Tar SDL headers and Upload to AWS S3 (Only on Push/Workflow_dispatch Events)
               if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && runner.os == 'Linux' }}
-              shell: bash
               run: |
                   tar -zcvf ${{ env.headers-tar-name }} include
                   aws s3 cp ${{ env.headers-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.headers-tar-name }}
@@ -170,8 +156,8 @@ jobs:
             ###################################################################################
 
             - name: Notify Slack on Workflow Error (Only on Push/Workflow_dispatch Events)
-              if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch' )&& failure() }}
-              shell: bash
+              if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
+              shell: bash --noprofile --norc -eo pipefail {0}
               run: |
                   curl -X POST \
                   --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \":rotating_light: Failed to Deploy \`SDL\` Static Library to AWS S3, Investigate Immediately :rotating_light:\", \"icon_emoji\": \":fractal:\"}" \
