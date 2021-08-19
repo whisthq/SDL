@@ -952,64 +952,74 @@ METAL_UpdateTextureNV(SDL_Renderer * renderer, SDL_Texture * texture,
     METAL_RenderData *data = (__bridge METAL_RenderData *) renderer->driverdata;
     METAL_TextureData *texturedata = (__bridge METAL_TextureData *)texture->driverdata;
     SDL_Rect UVrect = {rect->x / 2, rect->y / 2, (rect->w + 1) / 2, (rect->h + 1) / 2};
-    // UVplane will go unused
-    (void) UVplane;
+    if (Yplane == UVplane) {
+        // Fractal gave us VideoToolbox frame
 
-    /* Bail out if we're supposed to update an empty rectangle */
-    if (rect->w <= 0 || rect->h <= 0) {
+        /* Bail out if we're supposed to update an empty rectangle */
+        if (rect->w <= 0 || rect->h <= 0) {
+            return 0;
+        }
+
+        CVPixelBufferRef frame_data = (CVPixelBufferRef) Yplane;
+        CVMetalTextureCacheRef texture_cache;
+        CVMetalTextureCacheCreate(kCFAllocatorDefault, NULL, data.mtldevice, NULL, &texture_cache);
+        CVMetalTextureRef cv_y_texture;
+        CVMetalTextureRef cv_uv_texture;
+        CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, texture_cache, frame_data, NULL, MTLPixelFormatR8Unorm, rect->w, rect->h, 0, &cv_y_texture);
+        CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, texture_cache, frame_data, NULL, MTLPixelFormatRG8Unorm, UVrect.w, UVrect.h, 1, &cv_uv_texture);
+        id<MTLTexture> y_texture = CVMetalTextureGetTexture(cv_y_texture);
+        id<MTLTexture> uv_texture = CVMetalTextureGetTexture(cv_uv_texture);
+        if (data.mtlcmdencoder != nil) {
+            [data.mtlcmdencoder endEncoding];
+            data.mtlcmdencoder = nil;
+        }
+
+        // Queue a new buffer as needed
+        if (data.mtlcmdbuffer == nil) {
+            data.mtlcmdbuffer = [data.mtlcmdqueue commandBuffer];
+        }
+
+        // Queue up all the texture copies
+        id<MTLBlitCommandEncoder> blitcmd = [data.mtlcmdbuffer blitCommandEncoder];
+
+        // Copy the textures over
+        [blitcmd copyFromTexture:y_texture
+                     sourceSlice:0
+                     sourceLevel:0
+                    sourceOrigin:MTLOriginMake(0, 0, 0)
+                      sourceSize:MTLSizeMake(rect->w, rect->h, 1)
+                       toTexture:texturedata.mtltexture
+                destinationSlice:0
+                destinationLevel:0
+               destinationOrigin:MTLOriginMake(rect->x, rect->y, 0)];
+
+        [blitcmd copyFromTexture:uv_texture
+                     sourceSlice:0
+                     sourceLevel:0
+                    sourceOrigin:MTLOriginMake(0, 0, 0)
+                      sourceSize:MTLSizeMake(UVrect.w, UVrect.h, 1)
+                       toTexture:texturedata.mtltexture_uv
+                destinationSlice:0
+                destinationLevel:0
+               destinationOrigin:MTLOriginMake(UVrect.x, UVrect.y, 0)];
+
+        [blitcmd endEncoding];
+
+        [data.mtlcmdbuffer commit];
+        data.mtlcmdbuffer = nil;
+        texturedata.hasdata = YES;
+
+        return 0;
+    } else {
+        // ordinary software stuff
+        if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture, *rect, 0, Yplane, Ypitch) < 0) {
+            return -1;
+        }
+        if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture_uv, UVrect, 0, UVplane, UVpitch) < 0) {
+            return -1;
+        }
         return 0;
     }
-
-    CVPixelBufferRef frame_data = (CVPixelBufferRef) Yplane;
-    CVMetalTextureCacheRef texture_cache;
-    CVMetalTextureCacheCreate(kCFAllocatorDefault, NULL, data.mtldevice, NULL, &texture_cache);
-    CVMetalTextureRef cv_y_texture;
-    CVMetalTextureRef cv_uv_texture;
-    CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, texture_cache, frame_data, NULL, MTLPixelFormatR8Unorm, rect->w, rect->h, 0, &cv_y_texture);
-    CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, texture_cache, frame_data, NULL, MTLPixelFormatRG8Unorm, UVrect.w, UVrect.h, 1, &cv_uv_texture);
-    id<MTLTexture> y_texture = CVMetalTextureGetTexture(cv_y_texture);
-    id<MTLTexture> uv_texture = CVMetalTextureGetTexture(cv_uv_texture);
-    if (data.mtlcmdencoder != nil) {
-        [data.mtlcmdencoder endEncoding];
-        data.mtlcmdencoder = nil;
-    }
-
-    // Queue a new buffer as needed
-    if (data.mtlcmdbuffer == nil) {
-        data.mtlcmdbuffer = [data.mtlcmdqueue commandBuffer];
-    }
-
-    // Queue up all the texture copies
-    id<MTLBlitCommandEncoder> blitcmd = [data.mtlcmdbuffer blitCommandEncoder];
-
-    // Copy the textures over
-    [blitcmd copyFromTexture:y_texture
-                 sourceSlice:0
-                 sourceLevel:0
-                sourceOrigin:MTLOriginMake(0, 0, 0)
-                  sourceSize:MTLSizeMake(rect->w, rect->h, 1)
-                   toTexture:texturedata.mtltexture
-            destinationSlice:0
-            destinationLevel:0
-           destinationOrigin:MTLOriginMake(rect->x, rect->y, 0)];
-
-    [blitcmd copyFromTexture:uv_texture
-                 sourceSlice:0
-                 sourceLevel:0
-                sourceOrigin:MTLOriginMake(0, 0, 0)
-                  sourceSize:MTLSizeMake(UVrect.w, UVrect.h, 1)
-                   toTexture:texturedata.mtltexture_uv
-            destinationSlice:0
-            destinationLevel:0
-           destinationOrigin:MTLOriginMake(UVrect.x, UVrect.y, 0)];
-
-    [blitcmd endEncoding];
-
-    [data.mtlcmdbuffer commit];
-    data.mtlcmdbuffer = nil;
-    texturedata.hasdata = YES;
-
-    return 0;
 }}
 #endif
 
