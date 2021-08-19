@@ -952,6 +952,8 @@ METAL_UpdateTextureNV(SDL_Renderer * renderer, SDL_Texture * texture,
     METAL_RenderData *data = (__bridge METAL_RenderData *) renderer->driverdata;
     METAL_TextureData *texturedata = (__bridge METAL_TextureData *)texture->driverdata;
     SDL_Rect UVrect = {rect->x / 2, rect->y / 2, (rect->w + 1) / 2, (rect->h + 1) / 2};
+    // UVplane will go unused
+    (void) UVplane;
 
     /* Bail out if we're supposed to update an empty rectangle */
     if (rect->w <= 0 || rect->h <= 0) {
