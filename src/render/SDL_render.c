@@ -1789,7 +1789,6 @@ int SDL_UpdateNVTexture(SDL_Texture * texture, const SDL_Rect * rect,
 
     CHECK_TEXTURE_MAGIC(texture, -1);
 
-    /*
     if (!Yplane) {
         return SDL_InvalidParamError("Yplane");
     }
@@ -1802,7 +1801,6 @@ int SDL_UpdateNVTexture(SDL_Texture * texture, const SDL_Rect * rect,
     if (!UVpitch) {
         return SDL_InvalidParamError("UVpitch");
     }
-    */
 
     if (texture->format != SDL_PIXELFORMAT_NV12 &&
         texture->format != SDL_PIXELFORMAT_NV21) {
