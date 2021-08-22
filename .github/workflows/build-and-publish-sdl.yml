@@ -108,7 +108,7 @@ jobs:
 
             - name: On Linux, Install SDL Dependencies
               if: runner.os == 'Linux'
-              run: sudo apt-get install libasound2-dev xorg-dev
+              run: sudo apt-get update && sudo apt-get install libasound2-dev xorg-dev
 
             - name: Build Fractal SDL on Linux Ubuntu
               if: runner.os == 'Linux'
