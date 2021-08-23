@@ -1008,23 +1008,10 @@ METAL_UpdateTextureNV(SDL_Renderer * renderer, SDL_Texture * texture,
         [data.mtlcmdbuffer commit];
         data.mtlcmdbuffer = nil;
         texturedata.hasdata = YES;
-        // CVPixelBufferRelease(frame_data);
-        // frame_data = nil;
         CVBufferRelease(cv_y_texture);
         CVBufferRelease(cv_uv_texture);
         CVMetalTextureCacheFlush(texture_cache, 0);
-        // CVBufferRelease(texture_cache);
         CFRelease(texture_cache);
-        // CVBufferRelease(y_texture);
-        // CVBufferRelease(uv_texture);
-        /*
-         * texture_cache = nil;
-         * cv_y_texture = nil;
-         * cv_uv_texture = nil;
-         * y_texture = nil;
-         * uv_texture = nil;
-         */
-
         return 0;
     } else {
         // ordinary software stuff
