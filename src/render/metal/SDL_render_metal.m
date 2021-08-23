@@ -1017,7 +1017,10 @@ METAL_UpdateTextureNV(SDL_Renderer * renderer, SDL_Texture * texture,
         [data.mtlcmdbuffer commit];
         data.mtlcmdbuffer = nil;
         texturedata.hasdata = YES;
-
+        CVBufferRelease(cv_y_texture);
+        CVBufferRelease(cv_uv_texture);
+        CVMetalTextureCacheFlush(texture_cache, 0);
+        CFRelease(texture_cache);
         return 0;
     } else {
         // ordinary software stuff
