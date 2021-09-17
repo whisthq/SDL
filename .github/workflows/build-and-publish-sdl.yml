@@ -28,7 +28,7 @@ jobs:
                 config:
                     - name: "Build and Publish Fractal SDL on Windows"
                       os: windows-2019 # Same OS as Windows 10
-                    - name: "Build and Publish Fractal SDL on macOS"
+                    - name: "Build and Publish Fractal SDL on macOS (X64)"
                       os: macos-10.15 # Xcode and Homebrew come preinstalled
                     - name: "Build and Publish Fractal SDL on Linux Ubuntu"
                       os: ubuntu-20.04
@@ -37,7 +37,7 @@ jobs:
         env:
             binary-location: build
             windows-tar-name: fractal-windows-sdl2-static-lib.tar.gz
-            macos-tar-name: fractal-macos-sdl2-static-lib.tar.gz
+            macos-tar-name: fractal-macos-x64-sdl2-static-lib.tar.gz
             linux-tar-name: fractal-linux-sdl2-static-lib.tar.gz
             headers-tar-name: fractal-sdl2-headers.tar.gz
             s3-bucket-region: us-east-1
