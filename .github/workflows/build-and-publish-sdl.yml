@@ -89,7 +89,7 @@ jobs:
             - name: Build Fractal SDL on macOS
               if: runner.os == 'macOS'
               env:
-                  FRACTAL_OSX_SYSROOT: "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+                  FRACTAL_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
               run: |
                   # create build output folder
                   mkdir ${{ env.binary-location }}
