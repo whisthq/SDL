@@ -56,8 +56,8 @@ jobs:
             ###################################################################################
             ################################# MACOS STEPS START ###############################
 
-            - name: Install Cmake
-              run: brew install cmake
+            - name: Install cmake, gcc, and pkg-config
+              run: brew install cmake pkg-config gcc
 
             - name: Build Fractal SDL on macOS ARM64
               env:
