@@ -27,7 +27,6 @@ jobs:
           run:
             shell: "/usr/bin/arch -arch arm64e /bin/bash {0}"
 
-        # Environment variables for the deployment
         env:
             binary-location: build
             macos-tar-name: fractal-macos-arm64-sdl2-static-lib.tar.gz
@@ -93,7 +92,7 @@ jobs:
               if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
               run: |
                   curl -X POST \
-                  --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \":rotating_light: Failed to Deploy \`SDL\` Static Library to AWS S3, Investigate Immediately :rotating_light:\", \"icon_emoji\": \":fractal:\"}" \
+                  --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \":rotating_light: Failed to Deploy Fractal ARM64 macOS \`SDL\` Static Library to AWS S3, Investigate Immediately :rotating_light:\", \"icon_emoji\": \":fractal:\"}" \
                   ${{ secrets.SLACK_HOOKS_ENDPOINT }}
 
     notify-slack:
@@ -105,5 +104,5 @@ jobs:
             - name: Notify Slack
               run: |
                   curl -X POST \
-                  --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \"Fractal \`SDL\` Static Library Deployed to Production via Upload to AWS S3\", \"icon_emoji\": \":fractal:\"}" \
+                  --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \"Fractal ARM64 macOS \`SDL\` Static Library Deployed to Production via Upload to AWS S3\", \"icon_emoji\": \":fractal:\"}" \
                   ${{ secrets.SLACK_HOOKS_ENDPOINT }}

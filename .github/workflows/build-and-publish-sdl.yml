@@ -33,7 +33,6 @@ jobs:
                     - name: "Build and Publish Fractal SDL on Linux Ubuntu"
                       os: ubuntu-20.04
 
-        # Environment variables for the deployment
         env:
             binary-location: build
             windows-tar-name: fractal-windows-sdl2-static-lib.tar.gz
@@ -160,7 +159,7 @@ jobs:
               shell: bash --noprofile --norc -eo pipefail {0}
               run: |
                   curl -X POST \
-                  --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \":rotating_light: Failed to Deploy X86_64 \`SDL\` Static Libraries to AWS S3, Investigate Immediately :rotating_light:\", \"icon_emoji\": \":fractal:\"}" \
+                  --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \":rotating_light: Failed to Deploy Fractal X86_64 \`SDL\` Static Libraries to AWS S3, Investigate Immediately :rotating_light:\", \"icon_emoji\": \":fractal:\"}" \
                   ${{ secrets.SLACK_HOOKS_ENDPOINT }}
 
     notify-slack:
