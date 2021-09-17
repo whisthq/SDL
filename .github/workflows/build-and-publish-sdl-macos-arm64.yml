@@ -1,10 +1,10 @@
 # workflows/build-and-publish-sdl-macos-arm64.yml
 #
-# Build & Publish Fractal SDL for macOS ARM64
+# Build & Publish Fractal SDL
 # Build and publish the internal Fractal version of SDL for macOS ARM64 (M1) 
 # by building on a self-hosted MacStadium M1 MacMini and uploading compiled libs to AWS S3.
 
-name: "Build & Publish Fractal SDL for macOS ARM64"
+name: "Build & Publish Fractal SDL"
 
 on:
     pull_request:
@@ -55,6 +55,9 @@ jobs:
 
             ###################################################################################
             ################################# MACOS STEPS START ###############################
+
+            - name: Install Cmake
+              run: brew install cmake
 
             - name: Build Fractal SDL on macOS ARM64
               env:
