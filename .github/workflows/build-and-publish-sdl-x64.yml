@@ -1,7 +1,7 @@
 # workflows/build-and-publish-sdl.yml
 #
 # Build & Publish Fractal SDL
-# Build and publish the internal Fractal version of SDL by uploading compiled libs to AWS S3.
+# Build and publish the internal Fractal version of SDL by uploading the compiled libs to AWS S3.
 
 name: "Build & Publish Fractal SDL"
 
@@ -48,7 +48,6 @@ jobs:
             - name: Checkout Git Repository
               uses: actions/checkout@v2
             
-            # For uploading the compiled libs to AWS S3
             - name: Configure AWS S3 CLI
               uses: aws-actions/configure-aws-credentials@v1
               with:

@@ -19,7 +19,7 @@ This repository is Fractal's fork of SDL, with a few modifications. We forked SD
 
 - Added SDL events for detection window occlusion on macOS
 
-- Created a GitHub Actions workflow, `build-and-publish-sdl.yml` to build, test and publish on Windows, macOS and Linux Ubuntu
+- Created a GitHub Actions workflows, `build-and-publish-sdl-x64.yml` and `build-and-publish-sdl-macos-arm64.yml` to build, test and publish on Windows, macOS and Linux Ubuntu
 
 - Modified METAL_UpdateTextureNV to take VideoToolbox frames, wrap Metal textures around them, and directly GPU copy those Metal textures to the SDL texture to be rendered. We determine whether to use this hardware transfer or a software copy by checking the arguments to that function - if the Y and UV planes are the same, it's a VideoToolbox frame, and if not, it's a CPU frame.
 
