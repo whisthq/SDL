@@ -1,7 +1,7 @@
 Fractal README
 =============
 
-[![Build & Publish Fractal SDL](https://github.com/fractal/SDL/actions/workflows/build-and-publish-sdl.yml/badge.svg)](https://github.com/fractal/SDL/actions/workflows/build-and-publish-sdl.yml)
+[![.github/workflows/build-and-publish-sdl.yml](https://github.com/fractal/SDL/actions/workflows/build-and-publish-sdl.yml/badge.svg)](https://github.com/fractal/SDL/actions/workflows/build-and-publish-sdl.yml)
 
 This repository is Fractal's fork of SDL, with a few modifications. We forked SDL so that we can control and optimize it for better integration with the Fractal streaming protocol. For instructions on how to build the Fractal version SDL for development on your platform, consult [the SDL wiki](https://wiki.libsdl.org/Installation) or the [Building](#Building) section below. Note that we will be using the CMake build tools instead of `./configure`.
 

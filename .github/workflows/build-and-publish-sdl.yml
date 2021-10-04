@@ -242,12 +242,12 @@ jobs:
   # Notify us in Slack if all jobs from this workflow succeed
   notify-slack:
     name: Notify Slack
-      needs: [build-and-publish-fractal-sdl-x64, build-and-publish-fractal-sdl-arm64]
-      if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && success() }}
-      runs-on: ubuntu-20.04
-      steps:
-        - name: Notify Slack
-          run: |
-            curl -X POST \
-            --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \"Fractal \`SDL\` Static Libraries Deployed to Production via Upload to AWS S3 (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)\", \"icon_emoji\": \":fractal:\"}" \
-            ${{ secrets.SLACK_HOOKS_ENDPOINT }}
+    runs-on: ubuntu-20.04
+    needs: [build-and-publish-fractal-sdl-x64, build-and-publish-fractal-sdl-arm64]
+    if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && success() }}
+    steps:
+      - name: Notify Slack
+        run: |
+          curl -X POST \
+          --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \"Fractal \`SDL\` Static Libraries Deployed to Production via Upload to AWS S3 (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)\", \"icon_emoji\": \":fractal:\"}" \
+          ${{ secrets.SLACK_HOOKS_ENDPOINT }}
