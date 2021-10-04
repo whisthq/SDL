@@ -1,0 +1,253 @@
+# workflows/build-and-publish-sdl.yml
+#
+# Build & Publish Fractal SDL
+# Build and publish the Fractal version of SDL by uploading the compiled libs to AWS S3.
+
+name: "Build & Publish Fractal SDL"
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - README.md
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - README.md
+  workflow_dispatch:
+
+jobs:
+  # Build and publish SDL targeting Intel X86_64 systems (via GHA runners)
+  build-and-publish-fractal-sdl-x64:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+
+    strategy:
+      matrix:
+        config:
+          - name: "Windows"
+            os: windows-2019 # Same OS as Windows 10
+          - name: "macOS (X64)"
+            os: macos-10.15 # Xcode and Homebrew come preinstalled
+          - name: "Linux Ubuntu"
+            os: ubuntu-20.04
+
+    env:
+      binary-location: build
+      windows-tar-name: fractal-windows-sdl2-static-lib.tar.gz
+      macos-tar-name: fractal-macos-x64-sdl2-static-lib.tar.gz
+      linux-tar-name: fractal-linux-sdl2-static-lib.tar.gz
+      headers-tar-name: fractal-sdl2-headers.tar.gz
+      s3-bucket-region: us-east-1
+      s3-bucket-uri: s3://fractal-protocol-shared-libs
+            
+    steps:
+      ################################# CONFIG STEPS START ###############################
+
+      - name: Checkout Git Repository
+        uses: actions/checkout@v2
+      
+      - name: Configure AWS S3 CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.s3-bucket-region }}
+
+      ###################################################################################
+      ################################ WINDOWS STEPS START ##############################
+
+      - name: On Windows, Set up Visual Studio Developer Command Prompt (for nmake)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build Fractal SDL on Windows
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          REM create build output folder
+          mkdir ${{ env.binary-location }}
+
+          REM configure Cmake
+          cmake ^
+            -S . ^
+            -B build ^
+            -D HAVE_LIBC=ON ^
+            -D DIRECTX=OFF ^
+            -D CMAKE_BUILD_TYPE=Release ^
+            -G "NMake Makefiles"
+
+          REM build SDL
+          cd ${{ env.binary-location }} && nmake SDL2-static
+
+      ###################################################################################
+      ################################# MACOS STEPS START ###############################
+
+      - name: Build Fractal SDL on macOS
+        if: runner.os == 'macOS'
+        env:
+          FRACTAL_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+        run: |
+          # create build output folder
+          mkdir ${{ env.binary-location }}
+
+          # configure Cmake
+          cmake \
+            -S . \
+            -B build \
+            -D CMAKE_BUILD_TYPE=Release
+
+          # build SDL
+          cd ${{ env.binary-location }} && make SDL2-static
+
+      ###################################################################################
+      ############################# LINUX UBUNTU STEPS START ############################
+
+      - name: On Linux, Install SDL Dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install libasound2-dev xorg-dev
+
+      - name: Build Fractal SDL on Linux Ubuntu
+        if: runner.os == 'Linux'
+        run: |
+          # create build output folder
+          mkdir ${{ env.binary-location }}
+
+          # configure Cmake
+          cmake \
+            -S . \
+            -B build \
+            -D CMAKE_BUILD_TYPE=Release
+
+          # build SDL
+          cd ${{ env.binary-location }} && make SDL2-static
+
+      ###################################################################################
+      ################################# PUBLISH STEPS START #############################
+
+      # Only publish to AWS S3 on Push/Workflow_dispatch events (code merged into `main`)
+      - name: Tar libSDL and Upload to AWS S3 (Only on Push Events)
+        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+        shell: bash --noprofile --norc -eo pipefail {0}
+        run: |
+          cd ${{ env.binary-location }}
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            tar -zcvf ${{ env.linux-tar-name }} libSDL2.a
+            aws s3 cp ${{ env.linux-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.linux-tar-name }}
+          elif [ "$RUNNER_OS" == "Windows" ]; then
+            tar -zcvf ${{ env.windows-tar-name }} SDL2-static.lib
+            aws s3 cp ${{ env.windows-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.windows-tar-name }}
+          else
+            tar -zcvf ${{ env.macos-tar-name }} libSDL2.a
+            aws s3 cp ${{ env.macos-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.macos-tar-name }}
+          fi
+
+      # Only upload headers once, as they are identical on every OS
+      - name: Tar SDL headers and Upload to AWS S3 (Only on Push/Workflow_dispatch Events)
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && runner.os == 'Linux' }}
+        run: |
+          tar -zcvf ${{ env.headers-tar-name }} include
+          aws s3 cp ${{ env.headers-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.headers-tar-name }}
+
+      ###################################################################################
+
+      - name: Notify Slack on Workflow Error (Only on Push/Workflow_dispatch Events)
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
+        shell: bash --noprofile --norc -eo pipefail {0}
+        run: |
+          curl -X POST \
+          --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \"@releases :rotating_light: Failed to Deploy Fractal X86_64 \`SDL\` Static Libraries to AWS S3 :rotating_light: (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)\", \"icon_emoji\": \":fractal:\"}" \
+          ${{ secrets.SLACK_HOOKS_ENDPOINT }}
+
+  #######################################################################################
+  #######################################################################################
+
+  # Build and publish SDL targeting ARM64 systems (via self-hosted MacStadium M1 runner)
+  build-and-publish-fractal-sdl-arm64:
+    name: "macOS (ARM64)"
+    runs-on: [self-hosted, macOS, ARM64]
+    defaults:
+      run:
+        shell: "/usr/bin/arch -arch arm64e /bin/bash {0}"
+
+    env:
+      binary-location: build
+      macos-tar-name: fractal-macos-arm64-sdl2-static-lib.tar.gz
+      s3-bucket-region: us-east-1
+      s3-bucket-uri: s3://fractal-protocol-shared-libs
+      
+    steps:
+      ################################## CONFIG STEPS START ##############################
+
+      - name: Check M1 Runner Status
+        run: clang --version && uname -a
+
+      - name: Checkout Git Repository
+        uses: actions/checkout@v2
+      
+      - name: Install awscli, cmake, gcc, and pkg-config
+        run: brew install awscli cmake pkg-config gcc  
+
+      - name: Configure AWS S3 CLI
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.s3-bucket-region }}
+
+      ###################################################################################
+      ################################# MACOS STEPS START ###############################  
+
+      - name: Build Fractal SDL on macOS ARM64
+        env:
+          FRACTAL_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+        run: |
+          # create build output folder
+          mkdir ${{ env.binary-location }}
+
+          # configure Cmake
+          cmake \
+            -S . \
+            -B build \
+            -D CMAKE_BUILD_TYPE=Release
+
+          # build SDL
+          cd ${{ env.binary-location }} && make SDL2-static
+
+      ###################################################################################
+      ################################# PUBLISH STEPS START #############################
+
+      # Only publish to AWS S3 on Push/Workflow_dispatch events (code merged into `main`)
+      - name: Tar libSDL and Upload to AWS S3 (Only on Push Events)
+        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+        run: |
+          cd ${{ env.binary-location }}
+          tar -zcvf ${{ env.macos-tar-name }} libSDL2.a
+          aws s3 cp ${{ env.macos-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.macos-tar-name }}
+
+      ###################################################################################
+
+      - name: Notify Slack on Workflow Error (Only on Push/Workflow_dispatch Events)
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
+        run: |
+          curl -X POST \
+          --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \"@releases :rotating_light: Failed to deploy Fractal ARM64 \`SDL\` Static Libraries to AWS S3 :rotating_light: (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)\", \"icon_emoji\": \":fractal:\"}" \
+          ${{ secrets.SLACK_HOOKS_ENDPOINT }}
+
+  #######################################################################################
+  #######################################################################################
+
+  # Notify us in Slack if all jobs from this workflow succeed
+  notify-slack:
+    name: Notify Slack
+    runs-on: ubuntu-20.04
+    needs: [build-and-publish-fractal-sdl-x64, build-and-publish-fractal-sdl-arm64]
+    if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && success() }}
+    steps:
+      - name: Notify Slack
+        run: |
+          curl -X POST \
+          --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \"Fractal \`SDL\` Static Libraries Deployed to Production via Upload to AWS S3 (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)\", \"icon_emoji\": \":fractal:\"}" \
+          ${{ secrets.SLACK_HOOKS_ENDPOINT }}
