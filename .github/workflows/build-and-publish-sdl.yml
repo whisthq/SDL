@@ -44,7 +44,7 @@ jobs:
       s3-bucket-uri: s3://fractal-protocol-shared-libs
             
     steps:
-      ################################# CONFIG STEPS START ###############################
+      ################################# CONFIG STEPS START ##############################
 
       - name: Checkout Git Repository
         uses: actions/checkout@v2
