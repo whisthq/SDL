@@ -284,6 +284,12 @@ GetHintCtrlClickEmulateRightClick()
     return SDL_GetHintBoolean(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, SDL_FALSE);
 }
 
+static int
+GetHintUseWindowStyleFullStyleContentView()
+{
+    return SDL_GetHintBoolean(SDL_HINT_MAC_USE_WINDOW_STYLE_FULL_SIZE_CONTENT_VIEW, SDL_FALSE);
+}
+
 static NSUInteger
 GetWindowWindowedStyle(SDL_Window * window)
 {
@@ -293,6 +299,9 @@ GetWindowWindowedStyle(SDL_Window * window)
         style = NSWindowStyleMaskBorderless;
     } else {
         style = (NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable);
+        if (GetHintUseWindowStyleFullStyleContentView()) {
+            style |= NSWindowStyleMaskFullSizeContentView;
+        }
     }
     if (window->flags & SDL_WINDOW_RESIZABLE) {
         style |= NSWindowStyleMaskResizable;
