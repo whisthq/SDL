@@ -190,7 +190,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang")
   if(DEFINED ENV{FRACTAL_OSX_SYSROOT})
     set(CMAKE_OSX_SYSROOT $ENV{FRACTAL_OSX_SYSROOT})
   else()
-    set(CMAKE_OSX_SYSROOT /Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk)
+    set(CMAKE_OSX_SYSROOT /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk)
   endif()
 
 # Deployment target must be <= the SDK version.

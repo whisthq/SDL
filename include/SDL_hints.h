@@ -1672,6 +1672,17 @@ extern "C" {
 #define SDL_HINT_X11_FORCE_OVERRIDE_REDIRECT "SDL_X11_FORCE_OVERRIDE_REDIRECT"
 
 /**
+ *  \brief Configure a macOS window as full-size content view.
+ *
+ *  If set, this will cause the OS to draw the window controls (for example,
+ *  the traffic-light buttons) directly over the SDL-rendered contents,
+ *  removing the titlebar altogether. Used by Fractal for an integrated
+ *  titlebar to present a more native look.
+ *
+ */
+#define SDL_HINT_MAC_USE_WINDOW_STYLE_FULL_SIZE_CONTENT_VIEW "SDL_MAC_USE_WINDOW_STYLE_FULL_SIZE_CONTENT_VIEW"
+
+/**
  *  \brief  An enumeration of hint priorities
  */
 typedef enum
