@@ -455,7 +455,7 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
     inFullscreenTransition = YES;
 
     /* you need to be FullScreenPrimary, or toggleFullScreen doesn't work. Unset it again in windowDidExitFullScreen. */
-    [nswindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+    [nswindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary | NSWindowCollectionBehaviorFullScreenDisallowsTiling];
     [nswindow performSelectorOnMainThread: @selector(toggleFullScreen:) withObject:nswindow waitUntilDone:NO];
     return YES;
 }
@@ -852,9 +852,9 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
         /* Adjust the fullscreen toggle button and readd menu now that we're here. */
         if (window->flags & SDL_WINDOW_RESIZABLE) {
             /* resizable windows are Spaces-friendly: they get the "go fullscreen" toggle button on their titlebar. */
-            [nswindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+            [nswindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary | NSWindowCollectionBehaviorFullScreenDisallowsTiling];
         } else {
-            [nswindow setCollectionBehavior:NSWindowCollectionBehaviorManaged];
+            [nswindow setCollectionBehavior:NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorFullScreenDisallowsTiling];
         }
         [NSMenu setMenuBarVisible:YES];
 
@@ -1533,7 +1533,7 @@ Cocoa_CreateWindow(_THIS, SDL_Window * window)
         /* we put FULLSCREEN_DESKTOP windows in their own Space, without a toggle button or menubar, later */
         if (window->flags & SDL_WINDOW_RESIZABLE) {
             /* resizable windows are Spaces-friendly: they get the "go fullscreen" toggle button on their titlebar. */
-            [nswindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+            [nswindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary | NSWindowCollectionBehaviorFullScreenDisallowsTiling];
         }
     }
 
