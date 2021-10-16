@@ -297,4 +297,4 @@ jobs:
           SLACK_CHANNEL = "#alerts-prod"
           TITLE = ":sdl: Fractal SDL2 Static Libraries Deployed :sdl:"
           BODY = f"Fractal `SDL` Static Libraries deployed to Production via upload to AWS S3 (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)"
-          slack_post(slack_webhook=SLACK_WEBHOOK, channel=SLACK_CHANNEL, body=BODY)
+          slack_post(slack_webhook=SLACK_WEBHOOK, channel=SLACK_CHANNEL, title=TITLE, body=BODY)
