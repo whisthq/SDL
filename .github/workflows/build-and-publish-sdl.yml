@@ -42,13 +42,13 @@ jobs:
       headers-tar-name: fractal-sdl2-headers.tar.gz
       s3-bucket-region: us-east-1
       s3-bucket-uri: s3://fractal-protocol-shared-libs
-            
+
     steps:
       ################################# CONFIG STEPS START ##############################
 
       - name: Checkout Git Repository
         uses: actions/checkout@v2
-      
+
       - name: Configure AWS S3 CLI
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -153,13 +153,24 @@ jobs:
 
       ###################################################################################
 
+      - name: Checkout Fractal Git Repository
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
+        uses: actions/checkout@v2
+
+      - name: Setup Python-based Notifications
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
+        working-directory: .github/workflows/helpers
+        run: ./notifications/setup_notifications.sh
+
       - name: Notify Slack on Workflow Error (Only on Push/Workflow_dispatch Events)
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
-        shell: bash --noprofile --norc -eo pipefail {0}
+        shell: python3 {0}
         run: |
-          curl -X POST \
-          --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \"@releases :rotating_light: Failed to Deploy Fractal X86_64 \`SDL\` Static Libraries to AWS S3 :rotating_light: (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)\", \"icon_emoji\": \":fractal:\"}" \
-          ${{ secrets.SLACK_HOOKS_ENDPOINT }}
+          from notifications.slack_bot import slack_post
+          SLACK_WEBHOOK = "${{ secrets.SLACK_HOOKS_ENDPOINT }}"
+          SLACK_CHANNEL = "#alerts-prod"
+          BODY = f"@releases :rotating_light: Failed to deploy Fractal `SDL ${{ matrix.config.name }}` Static Library to AWS S3, investigate immediately :rotating_light: (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)"
+          slack_post(slack_webhook=SLACK_WEBHOOK, channel=SLACK_CHANNEL, body=BODY)
 
   #######################################################################################
   #######################################################################################
@@ -177,7 +188,7 @@ jobs:
       macos-tar-name: fractal-macos-arm64-sdl2-static-lib.tar.gz
       s3-bucket-region: us-east-1
       s3-bucket-uri: s3://fractal-protocol-shared-libs
-      
+
     steps:
       ################################## CONFIG STEPS START ##############################
 
@@ -186,9 +197,9 @@ jobs:
 
       - name: Checkout Git Repository
         uses: actions/checkout@v2
-      
+
       - name: Install awscli, cmake, gcc, and pkg-config
-        run: brew install awscli cmake pkg-config gcc  
+        run: brew install awscli cmake pkg-config gcc
 
       - name: Configure AWS S3 CLI
         uses: aws-actions/configure-aws-credentials@v1
@@ -198,7 +209,7 @@ jobs:
           aws-region: ${{ env.s3-bucket-region }}
 
       ###################################################################################
-      ################################# MACOS STEPS START ###############################  
+      ################################# MACOS STEPS START ###############################
 
       - name: Build Fractal SDL on macOS ARM64
         env:
@@ -229,12 +240,24 @@ jobs:
 
       ###################################################################################
 
+      - name: Checkout Fractal Git Repository
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
+        uses: actions/checkout@v2
+
+      - name: Setup Python-based Notifications
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
+        working-directory: .github/workflows/helpers
+        run: ./notifications/setup_notifications.sh
+
       - name: Notify Slack on Workflow Error (Only on Push/Workflow_dispatch Events)
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
+        shell: python3 {0}
         run: |
-          curl -X POST \
-          --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \"@releases :rotating_light: Failed to deploy Fractal ARM64 \`SDL\` Static Libraries to AWS S3 :rotating_light: (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)\", \"icon_emoji\": \":fractal:\"}" \
-          ${{ secrets.SLACK_HOOKS_ENDPOINT }}
+          from notifications.slack_bot import slack_post
+          SLACK_WEBHOOK = "${{ secrets.SLACK_HOOKS_ENDPOINT }}"
+          SLACK_CHANNEL = "#alerts-prod"
+          BODY = f"@releases :rotating_light: Failed to deploy Fractal `SDL macOS (ARM64)` Static Library to AWS S3, investigate immediately :rotating_light: (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)"
+          slack_post(slack_webhook=SLACK_WEBHOOK, channel=SLACK_CHANNEL, body=BODY)
 
   #######################################################################################
   #######################################################################################
@@ -243,11 +266,23 @@ jobs:
   notify-slack:
     name: Notify Slack
     runs-on: ubuntu-20.04
-    needs: [build-and-publish-fractal-sdl-x64, build-and-publish-fractal-sdl-arm64]
+    needs:
+      [build-and-publish-fractal-sdl-x64, build-and-publish-fractal-sdl-arm64]
     if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && success() }}
     steps:
-      - name: Notify Slack
+      - name: Checkout Fractal Git Repository
+        uses: actions/checkout@v2
+
+      - name: Setup Python-based Notifications
+        working-directory: .github/workflows/helpers
+        run: ./notifications/setup_notifications.sh
+
+      - name: Notify Slack on Workflow Success
+        shell: python3 {0}
         run: |
-          curl -X POST \
-          --data-urlencode "payload={\"channel\": \"#alerts-prod\", \"username\": \"Fractal Bot\", \"text\": \"Fractal \`SDL\` Static Libraries Deployed to Production via Upload to AWS S3 (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)\", \"icon_emoji\": \":fractal:\"}" \
-          ${{ secrets.SLACK_HOOKS_ENDPOINT }}
+          from notifications.slack_bot import slack_post
+          SLACK_WEBHOOK = "${{ secrets.SLACK_HOOKS_ENDPOINT }}"
+          SLACK_CHANNEL = "#alerts-prod"
+          TITLE = ":sdl: Fractal SDL2 Static Libraries Deployed :sdl:"
+          BODY = f"Fractal `SDL` Static Libraries deployed to Production via upload to AWS S3 (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)"
+          slack_post(slack_webhook=SLACK_WEBHOOK, channel=SLACK_CHANNEL, body=BODY)
