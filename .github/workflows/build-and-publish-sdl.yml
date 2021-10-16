@@ -159,7 +159,8 @@ jobs:
         with:
           repository: fractal/fractal
           ref: 'dev'
-          
+          token: ${{ secrets.GHA_PERSONAL_ACCESS_TOKEN }}
+
       - name: Setup Python-based Notifications
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
         working-directory: .github/workflows/helpers
@@ -249,6 +250,7 @@ jobs:
         with:
           repository: fractal/fractal
           ref: 'dev'
+          token: ${{ secrets.GHA_PERSONAL_ACCESS_TOKEN }}
 
       - name: Setup Python-based Notifications
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
@@ -281,6 +283,7 @@ jobs:
         with:
           repository: fractal/fractal
           ref: 'dev'
+          token: ${{ secrets.GHA_PERSONAL_ACCESS_TOKEN }}
 
       - name: Setup Python-based Notifications
         working-directory: .github/workflows/helpers
