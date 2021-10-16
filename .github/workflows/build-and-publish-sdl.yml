@@ -153,9 +153,11 @@ jobs:
 
       ###################################################################################
 
-      - name: Checkout Fractal Git Repository
+      - name: Checkout fractal/fractal Git Repository
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
         uses: actions/checkout@v2
+        with:
+          repository: fractal/fractal
 
       - name: Setup Python-based Notifications
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
@@ -240,9 +242,11 @@ jobs:
 
       ###################################################################################
 
-      - name: Checkout Fractal Git Repository
+      - name: Checkout fractal/fractal Git Repository
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
         uses: actions/checkout@v2
+        with:
+          repository: fractal/fractal
 
       - name: Setup Python-based Notifications
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
@@ -270,8 +274,10 @@ jobs:
       [build-and-publish-fractal-sdl-x64, build-and-publish-fractal-sdl-arm64]
     if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && success() }}
     steps:
-      - name: Checkout Fractal Git Repository
+      - name: Checkout fractal/fractal Git Repository
         uses: actions/checkout@v2
+        with:
+          repository: fractal/fractal
 
       - name: Setup Python-based Notifications
         working-directory: .github/workflows/helpers
