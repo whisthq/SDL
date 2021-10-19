@@ -25,6 +25,8 @@ This repository is Fractal's fork of SDL, with a few modifications. We forked SD
 
 - Added SDL hint for setting the SDL window and title bar to be integrated within the SDL window
 
+- Fixed an issue with watching videos on the Fractal remote browser when the SDL window is in fullscreen mode
+
 ## Development
 
 Before building or modifying the code, you should pull the latest changes from the public [`libsdl-org/SDL`](https://github.com/libsdl-org/SDL) repository that this repository is forked from. To set up your repository, follow these steps:
