@@ -1434,7 +1434,8 @@ Cocoa_SendMouseButtonClicks(SDL_Mouse * mouse, NSEvent *theEvent, SDL_Window * w
     // Ming and Suriya did some manual testing to find that dividing by 2
     //     yields a more accurate zoom feel, so that's where the 2 comes from
     CGFloat scroll_amount = [theEvent magnification] * _data->window->h / (80 * 2);
-    SDL_SendPinch(NULL, [theEvent magnification], scroll_amount);
+    CGFloat magnification = [theEvent phase] == NSEventPhaseEnded ? 0 : [theEvent magnification];
+    SDL_SendPinch(NULL, magnification, scroll_amount);
 }
 
 - (void)handleTouches:(NSTouchPhase) phase withEvent:(NSEvent *) theEvent
