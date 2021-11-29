@@ -21,7 +21,7 @@ on:
 jobs:
   # Build and publish SDL targeting Intel X86_64 systems (via GHA runners)
   build-and-publish-fractal-sdl-x64:
-    name: ${{ matrix.config.name }}
+    name: ${{ matrix.config.name }} (${{ matrix.options.name }})
     runs-on: ${{ matrix.config.os }}
 
     strategy:
@@ -29,16 +29,23 @@ jobs:
         config:
           - name: "Windows"
             os: windows-2019 # Same OS as Windows 10
-          - name: "macOS (X64)"
+          - name: "macOS (x64)"
             os: macos-10.15 # Xcode and Homebrew come preinstalled
           - name: "Linux Ubuntu"
             os: ubuntu-20.04
+        options:
+          - name: "Default"
+            suffix: ""
+            cmake-flags: ""
+          - name: "Position-Independent Code"
+            suffix: "-pic"
+            cmake-flags: "-D SDL_STATIC_PIC=ON"
 
     env:
       binary-location: build
-      windows-tar-name: fractal-windows-sdl2-static-lib.tar.gz
-      macos-tar-name: fractal-macos-x64-sdl2-static-lib.tar.gz
-      linux-tar-name: fractal-linux-sdl2-static-lib.tar.gz
+      windows-tar-name: fractal-windows-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
+      macos-tar-name: fractal-macos-x64-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
+      linux-tar-name: fractal-linux-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
       headers-tar-name: fractal-sdl2-headers.tar.gz
       s3-bucket-region: us-east-1
       s3-bucket-uri: s3://fractal-protocol-shared-libs
@@ -77,6 +84,7 @@ jobs:
             -D HAVE_LIBC=ON ^
             -D DIRECTX=OFF ^
             -D CMAKE_BUILD_TYPE=Release ^
+            ${{ matrix.options.cmake-flags }} ^
             -G "NMake Makefiles"
 
           REM build SDL
@@ -97,7 +105,8 @@ jobs:
           cmake \
             -S . \
             -B build \
-            -D CMAKE_BUILD_TYPE=Release
+            -D CMAKE_BUILD_TYPE=Release \
+            ${{ matrix.options.cmake-flags }}
 
           # build SDL
           cd ${{ env.binary-location }} && make SDL2-static
@@ -119,7 +128,8 @@ jobs:
           cmake \
             -S . \
             -B build \
-            -D CMAKE_BUILD_TYPE=Release
+            -D CMAKE_BUILD_TYPE=Release \
+            ${{ matrix.options.cmake-flags }}
 
           # build SDL
           cd ${{ env.binary-location }} && make SDL2-static
@@ -181,15 +191,25 @@ jobs:
 
   # Build and publish SDL targeting ARM64 systems (via self-hosted MacStadium M1 runner)
   build-and-publish-fractal-sdl-arm64:
-    name: "macOS (ARM64)"
+    name: "macOS (arm64) (${{ matrix.options.name }})"
     runs-on: [self-hosted, macOS, ARM64]
     defaults:
       run:
         shell: "/usr/bin/arch -arch arm64e /bin/bash {0}"
 
+    strategy:
+      matrix:
+        options:
+          - name: "Default"
+            suffix: ""
+            cmake-flags: ""
+          - name: "Position-Independent Code"
+            suffix: "-pic"
+            cmake-flags: "-D SDL_STATIC_PIC=ON"
+
     env:
       binary-location: build
-      macos-tar-name: fractal-macos-arm64-sdl2-static-lib.tar.gz
+      macos-tar-name: fractal-macos-arm64-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
       s3-bucket-region: us-east-1
       s3-bucket-uri: s3://fractal-protocol-shared-libs
 
@@ -226,7 +246,8 @@ jobs:
           cmake \
             -S . \
             -B build \
-            -D CMAKE_BUILD_TYPE=Release
+            -D CMAKE_BUILD_TYPE=Release \
+            ${{ matrix.options.cmake-flags }}
 
           # build SDL
           cd ${{ env.binary-location }} && make SDL2-static
