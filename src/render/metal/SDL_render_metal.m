@@ -821,7 +821,7 @@ METAL_UpdateTextureYUV(SDL_Renderer * renderer, SDL_Texture * texture,
                     const Uint8 *Uplane, int Upitch,
                     const Uint8 *Vplane, int Vpitch)
 { @autoreleasepool {
-    /* Modified by Fractal
+    /* Modified by Whist
      * FFmpeg gives us contiguous YUV data, and we modified FFmpeg to ensure it is page-aligned.
      * We create a MTLBuffer that wraps the YUV data instead of copying it.
      * This gets rid of one copy operation.
@@ -962,7 +962,7 @@ METAL_UpdateTextureNV(SDL_Renderer * renderer, SDL_Texture * texture,
     METAL_TextureData *texturedata = (__bridge METAL_TextureData *)texture->driverdata;
     SDL_Rect UVrect = {rect->x / 2, rect->y / 2, (rect->w + 1) / 2, (rect->h + 1) / 2};
     if (Yplane == UVplane) {
-        // Fractal gave us VideoToolbox frame
+        // Whist gave us VideoToolbox frame
 
         /* Bail out if we're supposed to update an empty rectangle */
         if (rect->w <= 0 || rect->h <= 0) {

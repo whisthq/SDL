@@ -1,9 +1,9 @@
 # workflows/build-and-publish-sdl.yml
 #
-# Build & Publish Fractal SDL
-# Build and publish the Fractal version of SDL by uploading the compiled libs to AWS S3.
+# Build & Publish Whist SDL
+# Build and publish the Whist version of SDL by uploading the compiled libs to AWS S3.
 
-name: "Build & Publish Fractal SDL"
+name: "Build & Publish Whist SDL"
 
 on:
   pull_request:
@@ -20,7 +20,7 @@ on:
 
 jobs:
   # Build and publish SDL targeting Intel X86_64 systems (via GHA runners)
-  build-and-publish-fractal-sdl-x64:
+  build-and-publish-whist-sdl-x64:
     name: ${{ matrix.config.name }} (${{ matrix.options.name }})
     runs-on: ${{ matrix.config.os }}
 
@@ -70,7 +70,7 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Build Fractal SDL on Windows
+      - name: Build Whist SDL on Windows
         if: runner.os == 'Windows'
         shell: cmd
         run: |
@@ -93,10 +93,10 @@ jobs:
       ###################################################################################
       ################################# MACOS STEPS START ###############################
 
-      - name: Build Fractal SDL on macOS
+      - name: Build Whist SDL on macOS
         if: runner.os == 'macOS'
         env:
-          FRACTAL_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+          WHIST_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
         run: |
           # create build output folder
           mkdir ${{ env.binary-location }}
@@ -118,7 +118,7 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install libasound2-dev xorg-dev
 
-      - name: Build Fractal SDL on Linux Ubuntu
+      - name: Build Whist SDL on Linux Ubuntu
         if: runner.os == 'Linux'
         run: |
           # create build output folder
@@ -163,11 +163,11 @@ jobs:
 
       ###################################################################################
 
-      - name: Checkout fractal/fractal Git Repository
+      - name: Checkout whisthq/whist Git Repository
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
         uses: actions/checkout@v2
         with:
-          repository: fractal/fractal
+          repository: whisthq/whist
           ref: 'dev'
           token: ${{ secrets.GHA_PERSONAL_ACCESS_TOKEN }}
 
@@ -181,16 +181,16 @@ jobs:
         shell: python3 {0}
         run: |
           from notifications.slack_bot import slack_post
-          SLACK_WEBHOOK = "${{ secrets.SLACK_HOOKS_ENDPOINT }}"
+          SLACK_WEBHOOK = "${{ secrets.SLACK_HOOKS_ENDPOINT_PROD }}"
           SLACK_CHANNEL = "#alerts-prod"
-          BODY = f"@releases :rotating_light: Failed to deploy Fractal `SDL ${{ matrix.config.name }}` Static Library to AWS S3, investigate immediately :rotating_light: (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)"
+          BODY = f"@releases :rotating_light: Failed to deploy Whist `SDL ${{ matrix.config.name }}` Static Library to AWS S3, investigate immediately :rotating_light: (<https://github.com/fractal/whist/actions/runs/${{ github.run_id }} | see logs>)"
           slack_post(slack_webhook=SLACK_WEBHOOK, channel=SLACK_CHANNEL, body=BODY)
 
   #######################################################################################
   #######################################################################################
 
   # Build and publish SDL targeting ARM64 systems (via self-hosted MacStadium M1 runner)
-  build-and-publish-fractal-sdl-arm64:
+  build-and-publish-whist-sdl-arm64:
     name: "macOS (arm64) (${{ matrix.options.name }})"
     runs-on: [self-hosted, macOS, ARM64]
     defaults:
@@ -235,9 +235,9 @@ jobs:
       ###################################################################################
       ################################# MACOS STEPS START ###############################
 
-      - name: Build Fractal SDL on macOS ARM64
+      - name: Build Whist SDL on macOS ARM64
         env:
-          FRACTAL_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+          WHIST_OSX_SYSROOT: "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
         run: |
           # create build output folder
           mkdir ${{ env.binary-location }}
@@ -265,11 +265,11 @@ jobs:
 
       ###################################################################################
 
-      - name: Checkout fractal/fractal Git Repository
+      - name: Checkout whisthq/whist Git Repository
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
         uses: actions/checkout@v2
         with:
-          repository: fractal/fractal
+          repository: whisthq/whist
           ref: 'dev'
           token: ${{ secrets.GHA_PERSONAL_ACCESS_TOKEN }}
 
@@ -283,9 +283,9 @@ jobs:
         shell: python3 {0}
         run: |
           from notifications.slack_bot import slack_post
-          SLACK_WEBHOOK = "${{ secrets.SLACK_HOOKS_ENDPOINT }}"
+          SLACK_WEBHOOK = "${{ secrets.SLACK_HOOKS_ENDPOINT_PROD }}"
           SLACK_CHANNEL = "#alerts-prod"
-          BODY = f"@releases :rotating_light: Failed to deploy Fractal `SDL macOS (ARM64)` Static Library to AWS S3, investigate immediately :rotating_light: (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)"
+          BODY = f"@releases :rotating_light: Failed to deploy Whist `SDL macOS (ARM64)` Static Library to AWS S3, investigate immediately :rotating_light: (<https://github.com/fractal/whist/actions/runs/${{ github.run_id }} | see logs>)"
           slack_post(slack_webhook=SLACK_WEBHOOK, channel=SLACK_CHANNEL, body=BODY)
 
   #######################################################################################
@@ -296,13 +296,13 @@ jobs:
     name: Notify Slack
     runs-on: ubuntu-20.04
     needs:
-      [build-and-publish-fractal-sdl-x64, build-and-publish-fractal-sdl-arm64]
+      [build-and-publish-whist-sdl-x64, build-and-publish-whist-sdl-arm64]
     if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && success() }}
     steps:
-      - name: Checkout fractal/fractal Git Repository
+      - name: Checkout whisthq/whist Git Repository
         uses: actions/checkout@v2
         with:
-          repository: fractal/fractal
+          repository: whisthq/whist
           ref: 'dev'
           token: ${{ secrets.GHA_PERSONAL_ACCESS_TOKEN }}
 
@@ -314,8 +314,8 @@ jobs:
         shell: python3 {0}
         run: |
           from notifications.slack_bot import slack_post
-          SLACK_WEBHOOK = "${{ secrets.SLACK_HOOKS_ENDPOINT }}"
+          SLACK_WEBHOOK = "${{ secrets.SLACK_HOOKS_ENDPOINT_PROD }}"
           SLACK_CHANNEL = "#alerts-prod"
-          TITLE = ":sdl: Fractal SDL2 Static Libraries Deployed :sdl:"
-          BODY = f"Fractal `SDL` Static Libraries deployed to Production via upload to AWS S3 (<https://github.com/fractal/fractal/actions/runs/${{ github.run_id }} | see logs>)"
+          TITLE = ":sdl: Whist SDL2 Static Libraries Deployed :sdl:"
+          BODY = f"Whist `SDL` Static Libraries deployed to Production via upload to AWS S3 (<https://github.com/fractal/whist/actions/runs/${{ github.run_id }} | see logs>)"
           slack_post(slack_webhook=SLACK_WEBHOOK, channel=SLACK_CHANNEL, title=TITLE, body=BODY)

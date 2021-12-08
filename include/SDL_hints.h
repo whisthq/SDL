@@ -1797,7 +1797,7 @@ extern "C" {
  *
  *  If set, this will cause the OS to draw the window controls (for example,
  *  the traffic-light buttons) directly over the SDL-rendered contents,
- *  removing the titlebar altogether. Used by Fractal for an integrated
+ *  removing the titlebar altogether. Used by Whist for an integrated
  *  titlebar to present a more native look.
  *
  */
