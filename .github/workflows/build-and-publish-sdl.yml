@@ -167,7 +167,7 @@ jobs:
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
         uses: actions/checkout@v2
         with:
-          repository: whisthq/whist
+          repository: fractal/whist
           ref: 'dev'
           token: ${{ secrets.GHA_PERSONAL_ACCESS_TOKEN }}
 
@@ -269,7 +269,7 @@ jobs:
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
         uses: actions/checkout@v2
         with:
-          repository: whisthq/whist
+          repository: fractal/whist
           ref: 'dev'
           token: ${{ secrets.GHA_PERSONAL_ACCESS_TOKEN }}
 
@@ -302,7 +302,7 @@ jobs:
       - name: Checkout whisthq/whist Git Repository
         uses: actions/checkout@v2
         with:
-          repository: whisthq/whist
+          repository: fractal/whist
           ref: 'dev'
           token: ${{ secrets.GHA_PERSONAL_ACCESS_TOKEN }}
 
