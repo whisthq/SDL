@@ -201,11 +201,11 @@ endif()
 if(CMAKE_C_COMPILER_ID MATCHES "Clang")
   set(USE_CLANG TRUE)
   set(OPT_DEF_ASM TRUE)
-################# Added by Fractal #################
+################# Added by Whist #################
 # Set macOS compiler and SDK globally, to enable
 # compiling SDL targeting macOS 10.13.
-  if(DEFINED ENV{FRACTAL_OSX_SYSROOT})
-    set(CMAKE_OSX_SYSROOT $ENV{FRACTAL_OSX_SYSROOT})
+  if(DEFINED ENV{WHIST_OSX_SYSROOT})
+    set(CMAKE_OSX_SYSROOT $ENV{WHIST_OSX_SYSROOT})
   else()
     set(CMAKE_OSX_SYSROOT /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk)
   endif()

@@ -725,7 +725,7 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
     Cocoa_CheckClipboardUpdate(_data->videodata);
 
     if ((isFullscreenSpace) && ((window->flags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP)) {
-        // Fractal: We disable this because we do want the menu bar to be visible on hover in triggered fullscreen mode.
+        // Whist: We disable this because we do want the menu bar to be visible on hover in triggered fullscreen mode.
         // [NSMenu setMenuBarVisible:NO];
     }
 
@@ -821,7 +821,7 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
         SetWindowStyle(window, [nswindow styleMask] & (~NSWindowStyleMaskResizable));
 
         if ((window->flags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) {
-            // Fractal: We disable this because we do want the menu bar to be visible on hover in triggered fullscreen mode.
+            // Whist: We disable this because we do want the menu bar to be visible on hover in triggered fullscreen mode.
             // [NSMenu setMenuBarVisible:NO];
         }
 
@@ -967,7 +967,7 @@ SetWindowStyle(SDL_Window * window, NSUInteger style)
 -(NSApplicationPresentationOptions)window:(NSWindow *)window willUseFullScreenPresentationOptions:(NSApplicationPresentationOptions)proposedOptions
 {
     if ((_data->window->flags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) {
-        // Fractal: We disable this because we do want the menu bar to be visible on hover in triggered fullscreen mode.
+        // Whist: We disable this because we do want the menu bar to be visible on hover in triggered fullscreen mode.
         // return NSApplicationPresentationFullScreen | NSApplicationPresentationAutoHideDock | NSApplicationPresentationAutoHideMenuBar;
         return proposedOptions;
     } else {
