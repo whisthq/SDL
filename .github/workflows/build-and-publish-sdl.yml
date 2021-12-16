@@ -167,7 +167,7 @@ jobs:
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
         uses: actions/checkout@v2
         with:
-          repository: fractal/whist
+          repository: whisthq/whist
           ref: 'dev'
           token: ${{ secrets.GHA_PERSONAL_ACCESS_TOKEN }}
 
@@ -183,7 +183,7 @@ jobs:
           from notifications.slack_bot import slack_post
           SLACK_WEBHOOK = "${{ secrets.SLACK_HOOKS_ENDPOINT_PROD }}"
           SLACK_CHANNEL = "#alerts-prod"
-          BODY = f"@releases :rotating_light: Failed to deploy Whist `SDL ${{ matrix.config.name }}` Static Library to AWS S3, investigate immediately :rotating_light: (<https://github.com/fractal/whist/actions/runs/${{ github.run_id }} | see logs>)"
+          BODY = f"@releases :rotating_light: Failed to deploy Whist `SDL ${{ matrix.config.name }}` Static Library to AWS S3, investigate immediately :rotating_light: (<https://github.com/whisthq/whist/actions/runs/${{ github.run_id }} | see logs>)"
           slack_post(slack_webhook=SLACK_WEBHOOK, channel=SLACK_CHANNEL, body=BODY)
 
   #######################################################################################
@@ -269,7 +269,7 @@ jobs:
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
         uses: actions/checkout@v2
         with:
-          repository: fractal/whist
+          repository: whisthq/whist
           ref: 'dev'
           token: ${{ secrets.GHA_PERSONAL_ACCESS_TOKEN }}
 
@@ -285,7 +285,7 @@ jobs:
           from notifications.slack_bot import slack_post
           SLACK_WEBHOOK = "${{ secrets.SLACK_HOOKS_ENDPOINT_PROD }}"
           SLACK_CHANNEL = "#alerts-prod"
-          BODY = f"@releases :rotating_light: Failed to deploy Whist `SDL macOS (ARM64)` Static Library to AWS S3, investigate immediately :rotating_light: (<https://github.com/fractal/whist/actions/runs/${{ github.run_id }} | see logs>)"
+          BODY = f"@releases :rotating_light: Failed to deploy Whist `SDL macOS (ARM64)` Static Library to AWS S3, investigate immediately :rotating_light: (<https://github.com/whisthq/whist/actions/runs/${{ github.run_id }} | see logs>)"
           slack_post(slack_webhook=SLACK_WEBHOOK, channel=SLACK_CHANNEL, body=BODY)
 
   #######################################################################################
@@ -302,7 +302,7 @@ jobs:
       - name: Checkout whisthq/whist Git Repository
         uses: actions/checkout@v2
         with:
-          repository: fractal/whist
+          repository: whisthq/whist
           ref: 'dev'
           token: ${{ secrets.GHA_PERSONAL_ACCESS_TOKEN }}
 
@@ -317,5 +317,5 @@ jobs:
           SLACK_WEBHOOK = "${{ secrets.SLACK_HOOKS_ENDPOINT_PROD }}"
           SLACK_CHANNEL = "#alerts-prod"
           TITLE = ":sdl: Whist SDL2 Static Libraries Deployed :sdl:"
-          BODY = f"Whist `SDL` Static Libraries deployed to Production via upload to AWS S3 (<https://github.com/fractal/whist/actions/runs/${{ github.run_id }} | see logs>)"
+          BODY = f"Whist `SDL` Static Libraries deployed to Production via upload to AWS S3 (<https://github.com/whisthq/whist/actions/runs/${{ github.run_id }} | see logs>)"
           slack_post(slack_webhook=SLACK_WEBHOOK, channel=SLACK_CHANNEL, title=TITLE, body=BODY)
