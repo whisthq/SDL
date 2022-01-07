@@ -204,17 +204,20 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang")
   if(MSVC)
     set(MSVC_CLANG TRUE)
   endif()
-################# Added by Fractal #################
-# Set macOS compiler and SDK globally, to enable
-# compiling SDL targeting macOS 10.13.
-  if(DEFINED ENV{WHIST_OSX_SYSROOT})
-    set(CMAKE_OSX_SYSROOT $ENV{WHIST_OSX_SYSROOT})
-  else()
+################# Added by Whist #################
+  if(APPLE)
+    # on macOS, detect if we are building arm64 or x86_64
+    # should return "arm64" or "x86_64"
+    execute_process(COMMAND uname -m COMMAND tr -d '\n' OUTPUT_VARIABLE MACOS_ARCHITECTURE)
+    # Use the latest sysroot
     set(CMAKE_OSX_SYSROOT /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk)
+    # Use an older deployment target so all systems will be happy
+    if(MACOS_ARCHITECTURE MATCHES "arm64")
+      set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0")
+    else()
+      set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
+    endif()
   endif()
-
-# Deployment target must be <= the SDK version.
-  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
 ###################################################
 elseif(CMAKE_COMPILER_IS_GNUCC)
   set(USE_GCC TRUE)
