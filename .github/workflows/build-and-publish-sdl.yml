@@ -139,7 +139,7 @@ jobs:
       - name: Tar libSDL and Upload to AWS S3 (Only on Push Events)
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         shell: bash --noprofile --norc -eo pipefail {0}
-        workdir: ${{ env.binary-location }}
+        working-directory: ${{ env.binary-location }}
         run: |
           mv ../include/*.h include
           if [ "$RUNNER_OS" == "Linux" ]; then
@@ -248,7 +248,7 @@ jobs:
       # Only publish to AWS S3 on Push/Workflow_dispatch events (code merged into `main`)
       - name: Tar libSDL and Upload to AWS S3 (Only on Push Events)
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
-        workdir: ${{ env.binary-location }}
+        working-directory: ${{ env.binary-location }}
         run: |
           mv ../include/*.h include
           tar -zcvf ${{ env.macos-tar-name }} libSDL2.a include/*.h
