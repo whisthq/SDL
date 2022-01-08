@@ -1586,7 +1586,7 @@ Optional Features:
   --enable-video          Enable the video subsystem [default=yes]
   --enable-render         Enable the render subsystem [default=yes]
   --enable-events         Enable the events subsystem [default=yes]
-  --enable-joystick       Enable the joystick subsystem [default=yes]
+  --enable-joystick       Enable the joystick subsystem [default=no]
   --enable-haptic         Enable the haptic (force feedback) subsystem
                           [default=yes]
   --enable-hidapi         Enable the HIDAPI subsystem [default=yes]
@@ -1696,7 +1696,7 @@ Optional Features:
   --enable-ime            enable IME support [default=yes]
   --enable-ibus           enable IBus support [default=yes]
   --enable-fcitx          enable fcitx support [default=yes]
-  --enable-joystick-mfi   include macOS MFI joystick support [default=yes]
+  --enable-joystick-mfi   include macOS MFI joystick support [default=no]
   --enable-pthreads       use POSIX threads for multi-threading
                           [default=maybe]
   --enable-pthread-sem    use pthread semaphores [default=maybe]
@@ -1718,7 +1718,7 @@ Optional Features:
                           number to use for magic foregrounding signal or 'no'
                           [default=no]
   --enable-joystick-virtual
-                          enable virtual joystick APIs [default=yes]
+                          enable virtual joystick APIs [default=no]
   --enable-render-d3d     enable the Direct3D render driver [default=yes]
   --enable-sdl2-config    Install sdl2-config [default=yes]
 
@@ -17408,7 +17408,7 @@ fi
 if test "${enable_joystick+set}" = set; then :
   enableval=$enable_joystick;
 else
-  enable_joystick=yes
+  enable_joystick=no
 fi
 
 if test x$enable_joystick != xyes; then
@@ -23521,7 +23521,7 @@ CheckJoystickMFI()
 if test "${enable_joystick_mfi+set}" = set; then :
   enableval=$enable_joystick_mfi;
 else
-  enable_joystick_mfi=yes
+  enable_joystick_mfi=no
 fi
 
 
@@ -25019,7 +25019,7 @@ CheckVirtualJoystick()
 if test "${enable_joystick_virtual+set}" = set; then :
   enableval=$enable_joystick_virtual;
 else
-  enable_joystick_virtual=yes
+  enable_joystick_virtual=no
 fi
 
     if test x$enable_joystick = xyes -a x$enable_joystick_virtual = xyes; then
