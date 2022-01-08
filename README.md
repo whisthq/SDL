@@ -9,6 +9,8 @@ This repository is Whist's fork of SDL, with a few modifications. We forked SDL 
 
 - Copy `README.txt` to `README.md` so that GitHub will render it nicely, and update it with our continuous integration workflow
 
+- Enable precision scrolling events
+
 - Allow `Command+W` to passthrough to the application on macOS, instead of being captured by the "Close Window" shortcut
 
 - Enable capturing macOS pinch gestures using Cocoa, to enable pinch-to-zoom on macOS trackpad devices
@@ -16,8 +18,6 @@ This repository is Whist's fork of SDL, with a few modifications. We forked SDL 
 - Reduce the SDL Metal implementation of updateYUVtexture from two data copies when combining with FFmpeg (FFmpeg &rarr; Staging Texture &rarr; Actual Texture) to one copy (FFmpeg &rarr; Actual Texture). This feature requires FFmpeg `av_malloc` to be pagesize-aligned, which is a modification we made on our own internal FFmpeg fork. This feature also modifies SDL to create one command encoder rather than three
 
 - Added SDL events for detection window occlusion on macOS
-
-- Change the default for building the joystick module from `yes` to `no`, to avoid an issue where on arm64 macOS SDL would attempt to build and link the iOS joystick module.
 
 - Created a GitHub Actions workflows, `build-and-publish-sdl.yml`, to build, test and publish on Windows, macOS and Linux Ubuntu
 
