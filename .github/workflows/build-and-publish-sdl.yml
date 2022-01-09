@@ -141,7 +141,8 @@ jobs:
         shell: bash --noprofile --norc -eo pipefail {0}
         working-directory: ${{ env.binary-location }}
         run: |
-          mv ../include/*.h include
+          # copy headers, but do not overwrite the generated SDL_config.h (-n)
+          mv -n ../include/*.h include
           if [ "$RUNNER_OS" == "Linux" ]; then
             tar -zcvf ${{ env.linux-tar-name }} libSDL2.a include/*.h
             aws s3 cp ${{ env.linux-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.linux-tar-name }}
@@ -250,7 +251,8 @@ jobs:
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         working-directory: ${{ env.binary-location }}
         run: |
-          mv ../include/*.h include
+          # copy headers, but do not overwrite the generated SDL_config.h (-n)
+          mv -n ../include/*.h include
           tar -zcvf ${{ env.macos-tar-name }} libSDL2.a include/*.h
           aws s3 cp ${{ env.macos-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.macos-tar-name }}
 
