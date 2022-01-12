@@ -215,7 +215,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang")
     if(MACOS_ARCHITECTURE MATCHES "arm64")
       set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0")
     else()
-      set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
+      set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
     endif()
   endif()
 ###################################################
