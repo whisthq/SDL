@@ -19,8 +19,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Build and publish SDL targeting Intel x86_64 systems (via GHA runners)
-  build-and-publish-whist-sdl-x64:
+  build-and-publish-whist-sdl:
     name: ${{ matrix.config.name }} (${{ matrix.options.name }})
     runs-on: ${{ matrix.config.os }}
 
@@ -31,6 +30,8 @@ jobs:
             os: windows-2019 # Same OS as Windows 10
           - name: "macOS (x64)"
             os: macos-10.15 # Xcode and Homebrew come preinstalled
+          - name: "macOS (arm64)"
+            os: macos-11 # Xcode and Homebrew come preinstalled
           - name: "Linux Ubuntu"
             os: ubuntu-20.04
         options:
@@ -44,7 +45,8 @@ jobs:
     env:
       binary-location: build
       windows-tar-name: fractal-windows-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
-      macos-tar-name: fractal-macos-x64-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
+      macos-x64-tar-name: fractal-macos-x64-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
+      macos-arm64-tar-name: fractal-macos-arm64-sdl2-static-lib${{ matrix.options.suffic }}.tar.gz
       linux-tar-name: fractal-linux-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
       s3-bucket-region: us-east-1
       s3-bucket-uri: s3://fractal-protocol-shared-libs
@@ -98,12 +100,25 @@ jobs:
           # create build output folder
           mkdir ${{ env.binary-location }}
 
-          # configure Cmake
-          cmake \
-            -S . \
-            -B build \
-            -D CMAKE_BUILD_TYPE=Release \
-            ${{ matrix.options.cmake-flags }}
+          if [[ "${{ matrix.config.name }}" == "macOS (x64)" ]]; then
+            # configure Cmake for native compilation on x64 systems
+            cmake \
+              -S . \
+              -B build \
+              -D CMAKE_BUILD_TYPE=Release \
+              ${{ matrix.options.cmake-flags }}
+          elif [[ "${{ matrix.config.name }}" == "macOS (arm64)" ]]; then
+            # configure Cmake for cross-compilation to arm64 from x64 systems
+            cmake \
+              -S . \
+              -B build \
+              -D CMAKE_OSX_ARCHITECTURES=arm64 \
+              -D CMAKE_BUILD_TYPE=Release \
+              ${{ matrix.options.cmake-flags }}
+          else
+            echo "Unsupported compilation attempt on macOS"
+            exit
+          fi
 
           # build SDL
           cd ${{ env.binary-location }} && make -j SDL2-static
@@ -150,8 +165,18 @@ jobs:
             tar -zcvf ${{ env.windows-tar-name }} SDL2-static.lib include/*.h
             aws s3 cp ${{ env.windows-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.windows-tar-name }}
           else
-            tar -zcvf ${{ env.macos-tar-name }} libSDL2.a include/*.h
-            aws s3 cp ${{ env.macos-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.macos-tar-name }}
+            if [[ "${{ matrix.config.name }}" == "macOS (x64)" ]]; then
+              tar -zcvf ${{ env.macos-x64-tar-name }} libSDL2.a include/*.h
+              aws s3 cp ${{ env.macos-x64-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.macos-x64-tar-name }}
+            elif [[ "${{ matrix.config.name }}" == "macOS (arm64)" ]]; then
+              # copy headers, but do not overwrite the generated SDL_config.h (-n)
+              mv -n ../include/*.h include
+              tar -zcvf ${{ env.macos-arm-64tar-name }} libSDL2.a include/*.h
+              aws s3 cp ${{ env.macos-arm64-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.macos-arm64-tar-name }}
+            else
+              echo "Tried to tar and upload libSDL to S3 for an unsupported OS"
+              exit             
+            fi
           fi
 
       ###################################################################################
@@ -177,108 +202,6 @@ jobs:
           SLACK_WEBHOOK = "${{ secrets.SLACK_HOOKS_ENDPOINT_PROD }}"
           SLACK_CHANNEL = "#alerts-prod"
           BODY = f"@releases :rotating_light: Failed to deploy Whist `SDL ${{ matrix.config.name }}` Static Library to AWS S3, investigate immediately :rotating_light: (<https://github.com/whisthq/SDL/actions/runs/${{ github.run_id }} | see logs>)"
-          slack_post(slack_webhook=SLACK_WEBHOOK, channel=SLACK_CHANNEL, body=BODY)
-
-  #######################################################################################
-  #######################################################################################
-
-  # Build and publish SDL targeting ARM64 systems (via self-hosted MacStadium M1 runner)
-  build-and-publish-whist-sdl-arm64:
-    name: "macOS (arm64) (${{ matrix.options.name }})"
-    runs-on: [self-hosted, macOS, ARM64]
-    defaults:
-      run:
-        shell: "/usr/bin/arch -arch arm64e /bin/bash {0}"
-
-    strategy:
-      matrix:
-        options:
-          - name: "Default"
-            suffix: ""
-            cmake-flags: ""
-          - name: "Position-Independent Code"
-            suffix: "-pic"
-            cmake-flags: "-D SDL_STATIC_PIC=ON"
-
-    env:
-      binary-location: build
-      macos-tar-name: fractal-macos-arm64-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
-      s3-bucket-region: us-east-1
-      s3-bucket-uri: s3://fractal-protocol-shared-libs
-
-    steps:
-      ################################## CONFIG STEPS START ##############################
-
-      - name: Check M1 Runner Status
-        run: clang --version && uname -a
-
-      - name: Checkout Git Repository
-        uses: actions/checkout@v2
-
-      - name: Install awscli, cmake, gcc, and pkg-config
-        run: brew install awscli cmake pkg-config gcc
-
-      - name: Configure AWS S3 CLI
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_GITHUB_ACTIONS_USER_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_GITHUB_ACTIONS_USER_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.s3-bucket-region }}
-
-      ###################################################################################
-      ################################# MACOS STEPS START ###############################
-
-      - name: Build Whist SDL on macOS ARM64
-        run: |
-          # create build output folder
-          mkdir ${{ env.binary-location }}
-
-          # configure Cmake
-          cmake \
-            -S . \
-            -B build \
-            -D CMAKE_BUILD_TYPE=Release \
-            ${{ matrix.options.cmake-flags }}
-
-          # build SDL
-          cd ${{ env.binary-location }} && make -j SDL2-static
-
-      ###################################################################################
-      ################################# PUBLISH STEPS START #############################
-
-      # Only publish to AWS S3 on Push/Workflow_dispatch events (code merged into `main`)
-      - name: Tar libSDL and Upload to AWS S3 (Only on Push Events)
-        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
-        working-directory: ${{ env.binary-location }}
-        run: |
-          # copy headers, but do not overwrite the generated SDL_config.h (-n)
-          mv -n ../include/*.h include
-          tar -zcvf ${{ env.macos-tar-name }} libSDL2.a include/*.h
-          aws s3 cp ${{ env.macos-tar-name }} ${{ env.s3-bucket-uri }}/${{ env.macos-tar-name }}
-
-      ###################################################################################
-
-      - name: Checkout whisthq/whist Git Repository
-        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
-        uses: actions/checkout@v2
-        with:
-          repository: whisthq/whist
-          ref: 'dev'
-          token: ${{ secrets.GHA_PERSONAL_ACCESS_TOKEN }}
-
-      - name: Setup Python-based Notifications
-        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
-        working-directory: .github/workflows/helpers
-        run: ./notifications/setup_notifications.sh
-
-      - name: Notify Slack on Workflow Error (Only on Push/Workflow_dispatch Events)
-        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
-        shell: python3 {0}
-        run: |
-          from notifications.slack_bot import slack_post
-          SLACK_WEBHOOK = "${{ secrets.SLACK_HOOKS_ENDPOINT_PROD }}"
-          SLACK_CHANNEL = "#alerts-prod"
-          BODY = f"@releases :rotating_light: Failed to deploy Whist `SDL macOS (ARM64)` Static Library to AWS S3, investigate immediately :rotating_light: (<https://github.com/whisthq/SDL/actions/runs/${{ github.run_id }} | see logs>)"
           slack_post(slack_webhook=SLACK_WEBHOOK, channel=SLACK_CHANNEL, body=BODY)
 
   #######################################################################################
