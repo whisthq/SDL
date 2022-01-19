@@ -68,7 +68,8 @@ static SDL_Window *FindSDLWindowForNSWindow(NSWindow *win)
 // Override terminate to handle Quit and System Shutdown smoothly.
 - (void)terminate:(id)sender
 {
-    SDL_SendQuit();
+    // Whist: We only want to exit the cocoa application on this event, not on regular SDL_SendQuit()
+    SDL_SendQuitApp();
 }
 
 static SDL_bool s_bShouldHandleEventsInSDLApplication = SDL_FALSE;
@@ -345,12 +346,12 @@ LoadMainMenuNibIfAvailable(void)
     infoDict = [[NSBundle mainBundle] infoDictionary];
     if (infoDict) {
         mainNibFileName = [infoDict valueForKey:@"NSMainNibFile"];
-        
+
         if (mainNibFileName) {
             success = [[NSBundle mainBundle] loadNibNamed:mainNibFileName owner:[NSApplication sharedApplication] topLevelObjects:nil];
         }
     }
-    
+
     return success;
 }
 
@@ -368,7 +369,7 @@ CreateApplicationMenus(void)
     if (NSApp == nil) {
         return;
     }
-    
+
     mainMenu = [[NSMenu alloc] init];
 
     /* Create the main menu bar */
@@ -382,6 +383,9 @@ CreateApplicationMenus(void)
     appleMenu = [[NSMenu alloc] initWithTitle:@""];
 
     /* Add menu items */
+    // Whist: We disable this since we want Cmd+W events to propagate and be handled by the server.
+    // [windowMenu addItemWithTitle:@"Close" action:@selector(performClose:) keyEquivalent:@"w"];
+
     title = [@"About " stringByAppendingString:appName];
     [appleMenu addItemWithTitle:title action:@selector(orderFrontStandardAboutPanel:) keyEquivalent:@""];
 
@@ -431,7 +435,7 @@ CreateApplicationMenus(void)
     [windowMenu addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];
 
     [windowMenu addItemWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""];
-    
+
     /* Add the fullscreen toggle menu option, if supported */
     if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_6) {
         /* Cocoa should update the title to Enter or Exit Full Screen automatically.
@@ -476,7 +480,7 @@ Cocoa_RegisterApp(void)
          */
         if ([NSApp mainMenu] == nil) {
             bool nibLoaded;
-            
+
             nibLoaded = LoadMainMenuNibIfAvailable();
             if (!nibLoaded) {
                 CreateApplicationMenus();

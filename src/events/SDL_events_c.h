@@ -44,11 +44,16 @@ extern void SDL_StopEventLoop(void);
 extern void SDL_QuitInterrupt(void);
 
 extern int SDL_SendAppEvent(SDL_EventType eventType);
+// Whist: Added to facilitate SDL_SendQuitApp() implementation
+extern int SDL_SendQuitEvent(SDL_bool quit_app);
 extern int SDL_SendSysWMEvent(SDL_SysWMmsg * message);
 extern int SDL_SendKeymapChangedEvent(void);
 extern int SDL_SendLocaleChangedEvent(void);
 
 extern int SDL_SendQuit(void);
+// Whist: Call this function if the quit should propagate to quitting
+// the macOS application.
+extern int SDL_SendQuitApp(void);
 
 extern int SDL_EventsInit(void);
 extern void SDL_EventsQuit(void);
