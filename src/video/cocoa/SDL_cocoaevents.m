@@ -345,12 +345,12 @@ LoadMainMenuNibIfAvailable(void)
     infoDict = [[NSBundle mainBundle] infoDictionary];
     if (infoDict) {
         mainNibFileName = [infoDict valueForKey:@"NSMainNibFile"];
-        
+
         if (mainNibFileName) {
             success = [[NSBundle mainBundle] loadNibNamed:mainNibFileName owner:[NSApplication sharedApplication] topLevelObjects:nil];
         }
     }
-    
+
     return success;
 }
 
@@ -368,7 +368,7 @@ CreateApplicationMenus(void)
     if (NSApp == nil) {
         return;
     }
-    
+
     mainMenu = [[NSMenu alloc] init];
 
     /* Create the main menu bar */
@@ -382,6 +382,9 @@ CreateApplicationMenus(void)
     appleMenu = [[NSMenu alloc] initWithTitle:@""];
 
     /* Add menu items */
+    // Whist: We disable this since we want Cmd+W events to propagate and be handled by the server.
+    // [windowMenu addItemWithTitle:@"Close" action:@selector(performClose:) keyEquivalent:@"w"];
+
     title = [@"About " stringByAppendingString:appName];
     [appleMenu addItemWithTitle:title action:@selector(orderFrontStandardAboutPanel:) keyEquivalent:@""];
 
@@ -411,7 +414,10 @@ CreateApplicationMenus(void)
     [appleMenu addItem:[NSMenuItem separatorItem]];
 
     title = [@"Quit " stringByAppendingString:appName];
-    [appleMenu addItemWithTitle:title action:@selector(terminate:) keyEquivalent:@"q"];
+    // Whist: We replace the default quit item with a custom one which only closes the window, so
+    // that our client app can fully manage application state.
+    // [appleMenu addItemWithTitle:title action:@selector(terminate:) keyEquivalent:@"q"];
+    [appleMenu addItemWithTitle:title action:@selector(closeWindow:) keyEquivalent:@"q"];
 
     /* Put menu into the menubar */
     menuItem = [[NSMenuItem alloc] initWithTitle:@"" action:nil keyEquivalent:@""];
@@ -431,7 +437,7 @@ CreateApplicationMenus(void)
     [windowMenu addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];
 
     [windowMenu addItemWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""];
-    
+
     /* Add the fullscreen toggle menu option, if supported */
     if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_6) {
         /* Cocoa should update the title to Enter or Exit Full Screen automatically.
@@ -476,7 +482,7 @@ Cocoa_RegisterApp(void)
          */
         if ([NSApp mainMenu] == nil) {
             bool nibLoaded;
-            
+
             nibLoaded = LoadMainMenuNibIfAvailable();
             if (!nibLoaded) {
                 CreateApplicationMenus();
