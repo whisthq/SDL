@@ -1265,6 +1265,21 @@ SDL_SendAppEvent(SDL_EventType eventType)
     return (posted);
 }
 
+// Whist: Added to facilitate SDL_SendQuitApp() implementation
+int
+SDL_SendQuitEvent(SDL_bool quit_app) {
+    int posted;
+
+    posted = 0;
+    if (SDL_GetEventState(SDL_QUIT) == SDL_ENABLE) {
+        SDL_Event event;
+        event.type = SDL_QUIT;
+        event.quit.quit_app = quit_app;
+        posted = (SDL_PushEvent(&event) > 0);
+    }
+    return (posted);
+}
+
 int
 SDL_SendSysWMEvent(SDL_SysWMmsg * message)
 {

@@ -203,7 +203,18 @@ SDL_SendQuit(void)
 #ifdef HAVE_SIGNAL_SUPPORT
     send_quit_pending = SDL_FALSE;
 #endif
-    return SDL_SendAppEvent(SDL_QUIT);
+    return SDL_SendQuitEvent(SDL_FALSE);
+}
+
+// Whist: Call this function if the quit should propagate to quitting
+// the macOS application.
+int
+SDL_SendQuitApp(void)
+{
+#ifdef HAVE_SIGNAL_SUPPORT
+    send_quit_pending = SDL_FALSE;
+#endif
+    return SDL_SendQuitEvent(SDL_TRUE);
 }
 
 /* vi: set ts=4 sw=4 expandtab: */

@@ -27,6 +27,8 @@ This repository is Whist's fork of SDL, with a few modifications. We forked SDL 
 
 - Fixed an issue with watching videos on the Whist remote browser when the SDL window is in fullscreen mode
 
+- Added an option to set a flag specifying a Cmd+Q force quitting on macOS when exiting the SDL application, to be passed to a frontend framework like Electron
+
 ## Development
 
 Before building or modifying the code, you should pull the latest changes from the public [`libsdl-org/SDL`](https://github.com/libsdl-org/SDL) repository that this repository is forked from. To set up your repository, follow these steps:

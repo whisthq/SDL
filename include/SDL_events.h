@@ -564,6 +564,8 @@ typedef struct SDL_QuitEvent
 {
     Uint32 type;        /**< ::SDL_QUIT */
     Uint32 timestamp;   /**< In milliseconds, populated using SDL_GetTicks() */
+    // Added by Whist
+    SDL_bool quit_app;  /**< Set to true if the application should be quit (e.g. on macOS). */
 } SDL_QuitEvent;
 
 /**
