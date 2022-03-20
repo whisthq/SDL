@@ -44,10 +44,10 @@ jobs:
 
     env:
       binary-location: build
-      windows-tar-name: fractal-windows-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
-      macos-x64-tar-name: fractal-macos-x64-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
-      macos-arm64-tar-name: fractal-macos-arm64-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
-      linux-tar-name: fractal-linux-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
+      windows-tar-name: whist-windows-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
+      macos-x64-tar-name: whist-macos-x64-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
+      macos-arm64-tar-name: whist-macos-arm64-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
+      linux-tar-name: whist-linux-sdl2-static-lib${{ matrix.options.suffix }}.tar.gz
       s3-bucket-region: us-east-1
       s3-bucket-uri: s3://fractal-protocol-shared-libs
 
