@@ -979,11 +979,20 @@ METAL_UpdateTextureNV(SDL_Renderer * renderer, SDL_Texture * texture,
 
         CVPixelBufferRef frame_data = (CVPixelBufferRef) Yplane;
         CVMetalTextureCacheRef texture_cache;
-        CVMetalTextureCacheCreate(kCFAllocatorDefault, NULL, data.mtldevice, NULL, &texture_cache);
+        auto status = CVMetalTextureCacheCreate(kCFAllocatorDefault, NULL, data.mtldevice, NULL, &texture_cache);
+        if (status != kCVReturnSuccess) {
+            return -1;
+        }
         CVMetalTextureRef cv_y_texture;
         CVMetalTextureRef cv_uv_texture;
-        CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, texture_cache, frame_data, NULL, MTLPixelFormatR8Unorm, rect->w, rect->h, 0, &cv_y_texture);
-        CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, texture_cache, frame_data, NULL, MTLPixelFormatRG8Unorm, UVrect.w, UVrect.h, 1, &cv_uv_texture);
+        status = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, texture_cache, frame_data, NULL, MTLPixelFormatR8Unorm, rect->w, rect->h, 0, &cv_y_texture);
+        if (status != kCVReturnSuccess) {
+            return -1;
+        }
+        status = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, texture_cache, frame_data, NULL, MTLPixelFormatRG8Unorm, UVrect.w, UVrect.h, 1, &cv_uv_texture);
+        if (status != kCVReturnSuccess) {
+            return -1;
+        }
         id<MTLTexture> y_texture = CVMetalTextureGetTexture(cv_y_texture);
         id<MTLTexture> uv_texture = CVMetalTextureGetTexture(cv_uv_texture);
         if (data.mtlcmdencoder != nil) {
