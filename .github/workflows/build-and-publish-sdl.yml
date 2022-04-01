@@ -61,7 +61,7 @@ jobs:
       ################################# CONFIG STEPS START ##############################
 
       - name: Checkout Git Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Configure AWS S3 CLI
         uses: aws-actions/configure-aws-credentials@v1
@@ -189,7 +189,7 @@ jobs:
 
       - name: Checkout whisthq/whist Git Repository
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && failure() }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: whisthq/whist
           ref: "dev"
@@ -220,7 +220,7 @@ jobs:
     if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && success() }}
     steps:
       - name: Checkout whisthq/whist Git Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: whisthq/whist
           ref: "dev"
