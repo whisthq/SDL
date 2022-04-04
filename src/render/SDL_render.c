@@ -1469,6 +1469,50 @@ SDL_CreateTextureFromSurface(SDL_Renderer * renderer, SDL_Surface * surface)
     return texture;
 }
 
+SDL_Texture *
+SDL_CreateTextureFromHandle(SDL_Renderer * renderer, Uint32 format,
+                            int access, int w, int h, void * handle)
+{
+    SDL_Texture *texture;
+
+    CHECK_RENDERER_MAGIC(renderer, NULL);
+
+    if (!renderer->CreateTextureFromHandle) {
+        SDL_SetError("CreateTextureFromHandle is not supported by %s.",
+                     renderer->info.name);
+        return NULL;
+    }
+
+    texture = (SDL_Texture *) SDL_calloc(1, sizeof(*texture));
+    if (!texture) {
+        SDL_OutOfMemory();
+        return NULL;
+    }
+    texture->magic = &texture_magic;
+    texture->format = format;
+    texture->access = access;
+    texture->w = w;
+    texture->h = h;
+    texture->color.r = 255;
+    texture->color.g = 255;
+    texture->color.b = 255;
+    texture->color.a = 255;
+    texture->scaleMode = SDL_GetScaleMode();
+    texture->renderer = renderer;
+    texture->next = renderer->textures;
+    if (renderer->textures) {
+        renderer->textures->prev = texture;
+    }
+    renderer->textures = texture;
+
+    if (renderer->CreateTextureFromHandle(renderer, texture, handle) < 0) {
+        SDL_DestroyTexture(texture);
+        return NULL;
+    }
+
+    return texture;
+}
+
 int
 SDL_QueryTexture(SDL_Texture * texture, Uint32 * format, int *access,
                  int *w, int *h)
