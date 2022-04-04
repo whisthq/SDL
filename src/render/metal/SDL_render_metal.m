@@ -140,6 +140,7 @@ typedef struct METAL_ShaderPipelines
     @property (nonatomic, assign) METAL_ShaderPipelines *activepipelines;
     @property (nonatomic, assign) METAL_ShaderPipelines *allpipelines;
     @property (nonatomic, assign) int pipelinescount;
+    @property (nonatomic, assign) CVMetalTextureCacheRef cache; // ADDED BY WHIST
 @end
 
 @implementation METAL_RenderData
@@ -672,6 +673,114 @@ METAL_CreateTexture(SDL_Renderer * renderer, SDL_Texture * texture)
         }
         texturedata.conversionBufferOffset = offset;
     }
+
+    texture->driverdata = (void*)CFBridgingRetain(texturedata);
+
+#if !__has_feature(objc_arc)
+    [texturedata release];
+    [mtltexture release];
+    [mtltexture_uv release];
+#endif
+
+    return 0;
+}}
+
+static int
+METAL_CreateTextureFromHandle(SDL_Renderer * renderer, SDL_Texture * texture, void * handle)
+{ @autoreleasepool {
+    METAL_RenderData *data = (__bridge METAL_RenderData *) renderer->driverdata;
+    MTLPixelFormat pixfmt;
+    switch (texture->format) {
+        case SDL_PIXELFORMAT_NV12:
+        case SDL_PIXELFORMAT_NV21:
+            pixfmt = MTLPixelFormatR8Unorm;
+            break;
+        default:
+            return SDL_SetError("Texture format %s not supported by CreateTextureFromHandle", SDL_GetPixelFormatName(texture->format));
+    }
+
+    // create the texture descriptor for renders, copies
+
+    MTLTextureDescriptor *mtltexdesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:pixfmt
+                                                                                          width:(NSUInteger)texture->w height:(NSUInteger)texture->h mipmapped:NO];
+
+    /* Not available in iOS 8. */
+    if ([mtltexdesc respondsToSelector:@selector(usage)]) {
+        if (texture->access == SDL_TEXTUREACCESS_TARGET) {
+            mtltexdesc.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
+        } else {
+            mtltexdesc.usage = MTLTextureUsageShaderRead;
+        }
+    }
+    // The + 1 is to round up. The codec will always produce width/height divisible
+    // by two, but if some pixels are cropped the luma plane size could be odd after
+    // that and you then need a whole extra sample on the chroma plane to use half of.
+    mtltexdesc.pixelFormat = MTLPixelFormatRG8Unorm;
+    mtltexdesc.width = (texture->w + 1) / 2;
+    mtltexdesc.height = (texture->h + 1) / 2;
+
+    // Create texturedata
+    METAL_TextureData *texturedata = [[METAL_TextureData alloc] init];
+    if (texture->scaleMode == SDL_ScaleModeNearest) {
+        texturedata.mtlsampler = data.mtlsamplernearest;
+    } else {
+        texturedata.mtlsampler = data.mtlsamplerlinear;
+    }
+
+    // Create Y and UV metal textures from VideoToolbox frame
+    CVPixelBufferRef frame_data = (CVPixelBufferRef) handle;
+    // the width/height is different from the texture width/height which is aligned for FFmpeg reasons
+    int width = CVPixelBufferGetWidth(frame_data);
+    int height = CVPixelBufferGetHeight(frame_data);
+    SDL_Rect UVrect = {0, 0, (width + 1) / 2, (height + 1) / 2};
+    CVReturn status;
+
+    // create wrappers around YPlane and UVplane
+    CVMetalTextureRef cv_y_texture = nil;
+    CVMetalTextureRef cv_uv_texture = nil;
+    status = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, data.cache,
+            frame_data, NULL, MTLPixelFormatR8Unorm, width, height, 0, &cv_y_texture);
+    if (status != kCVReturnSuccess || cv_y_texture == nil) {
+        return SDL_SetError("Failed to create texture from Y pixel buffer with status %d", status);
+    }
+    status = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, data.cache,
+            frame_data, NULL, MTLPixelFormatRG8Unorm, UVrect.w, UVrect.h, 1, &cv_uv_texture);
+    if (status != kCVReturnSuccess || cv_uv_texture == nil) {
+        return SDL_SetError("Failed to create texture from UV pixel buffer with status %d", status);
+    }
+
+    id<MTLTexture> mtltexture = CVMetalTextureGetTexture(cv_y_texture);
+    id<MTLTexture> mtltexture_uv = CVMetalTextureGetTexture(cv_uv_texture);
+
+    // https://developer.apple.com/forums/thread/694939 according to this,
+    // there should actually be no concurrent GPU access as long as everyone
+    // is using Core Video stuff! (between FFmpeg and SDL)
+    texturedata.hasdata = YES;
+    texturedata.mtltexture = [mtltexture retain];
+    texturedata.mtltexture_uv = [mtltexture_uv retain];
+
+    CVBufferRelease(cv_y_texture);
+    CVBufferRelease(cv_uv_texture);
+
+    // also kept in case we need to handle YUV formats
+    texturedata.yuv = NO;
+    texturedata.nv12 = YES;
+
+    if (texture->format == SDL_PIXELFORMAT_NV12) {
+        texturedata.fragmentFunction = SDL_METAL_FRAGMENT_NV12;
+    } else if (texture->format == SDL_PIXELFORMAT_NV21) {
+        texturedata.fragmentFunction = SDL_METAL_FRAGMENT_NV21;
+    }
+
+    size_t offset = 0;
+    SDL_YUV_CONVERSION_MODE mode = SDL_GetYUVConversionModeForResolution(texture->w, texture->h);
+    switch (mode) {
+        case SDL_YUV_CONVERSION_JPEG: offset = CONSTANTS_OFFSET_DECODE_JPEG; break;
+        case SDL_YUV_CONVERSION_BT601: offset = CONSTANTS_OFFSET_DECODE_BT601; break;
+        case SDL_YUV_CONVERSION_BT709: offset = CONSTANTS_OFFSET_DECODE_BT709; break;
+        default: offset = 0; break;
+    }
+    texturedata.conversionBufferOffset = offset;
 
     texture->driverdata = (void*)CFBridgingRetain(texturedata);
 
@@ -1734,6 +1843,10 @@ METAL_DestroyRenderer(SDL_Renderer * renderer)
         if (data.mtlcmdencoder != nil) {
             [data.mtlcmdencoder endEncoding];
         }
+        // ADDED BY WHIST
+        if (data.cache != NULL) {
+            CFRelease(data.cache);
+        }
 
         DestroyAllPipelines(data.allpipelines, data.pipelinescount);
 
@@ -1920,6 +2033,15 @@ METAL_CreateRenderer(SDL_Window * window, Uint32 flags)
     data.mtlcmdqueue.label = @"SDL Metal Renderer";
     data.mtlpassdesc = [MTLRenderPassDescriptor renderPassDescriptor];
 
+    // ADDED BY WHIST: texture cache
+    CVMetalTextureCacheRef cache = NULL;
+    CVReturn status = CVMetalTextureCacheCreate(kCFAllocatorDefault, NULL, data.mtldevice, NULL, &cache);
+    if (status != kCVReturnSuccess || cache == NULL) {
+        SDL_SetError("Failed to create texture cache");
+        return NULL;
+    }
+    data.cache = cache;
+
     NSError *err = nil;
 
     // The compiled .metallib is embedded in a static array in a header file
@@ -2045,6 +2167,7 @@ METAL_CreateRenderer(SDL_Window * window, Uint32 flags)
     renderer->GetOutputSize = METAL_GetOutputSize;
     renderer->SupportsBlendMode = METAL_SupportsBlendMode;
     renderer->CreateTexture = METAL_CreateTexture;
+    renderer->CreateTextureFromHandle = METAL_CreateTextureFromHandle;
     renderer->UpdateTexture = METAL_UpdateTexture;
 #if SDL_HAVE_YUV
     renderer->UpdateTextureYUV = METAL_UpdateTextureYUV;
