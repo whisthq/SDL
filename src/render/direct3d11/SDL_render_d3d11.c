@@ -1240,6 +1240,95 @@ D3D11_CreateTexture(SDL_Renderer * renderer, SDL_Texture * texture)
     return 0;
 }
 
+static int
+D3D11_CreateTextureFromHandle(SDL_Renderer * renderer, SDL_Texture * texture, void * handle)
+{
+    D3D11_RenderData *rendererData = (D3D11_RenderData *) renderer->driverdata;
+    D3D11_TextureData *textureData;
+    DXGI_FORMAT textureFormat = SDLPixelFormatToDXGIFormat(texture->format);
+    D3D11_SHADER_RESOURCE_VIEW_DESC resourceViewDesc;
+    D3D11_TEXTURE2D_DESC textureDesc;
+    HRESULT result;
+
+    SDL_TextureHandleD3D11 *input = handle;
+    ID3D11Texture2D *d3d11_texture = input->texture;
+    int subresource_index = input->index;
+
+    if (textureFormat == DXGI_FORMAT_UNKNOWN) {
+        return SDL_SetError("%s, An unsupported SDL pixel format (0x%x) was specified",
+            __FUNCTION__, texture->format);
+    }
+
+    ID3D11Texture2D_GetDesc(d3d11_texture, &textureDesc);
+
+    if (texture->format == SDL_PIXELFORMAT_NV12) {
+        if (textureDesc.Format != DXGI_FORMAT_NV12) {
+            return SDL_SetError("%s, Texture format is not NV12", __FUNCTION__);
+        }
+    } else {
+        if (textureDesc.Format != textureFormat) {
+            return SDL_SetError("%s, Texture format does not match", __FUNCTION__);
+        }
+    }
+
+    textureData = (D3D11_TextureData*) SDL_calloc(1, sizeof(*textureData));
+    if (!textureData) {
+        SDL_OutOfMemory();
+        return -1;
+    }
+    textureData->scaleMode = (texture->scaleMode == SDL_ScaleModeNearest) ?  D3D11_FILTER_MIN_MAG_MIP_POINT : D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+
+    // This reference is added so that DestroyTexture can release it
+    // again cleanly.  The user will still need to hold their own
+    // reference if they intend to do anything else with the texture.
+    ID3D11Texture2D_AddRef(d3d11_texture);
+    textureData->mainTexture = d3d11_texture;
+
+    texture->driverdata = textureData;
+
+    if (texture->format == SDL_PIXELFORMAT_NV12) {
+        textureData->nv12 = SDL_TRUE;
+        // We don't set textureData->mainTextureNV - both planes are in
+        // the single input texture.
+    }
+
+    resourceViewDesc.Format = textureFormat;
+    resourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+    resourceViewDesc.Texture2DArray.MostDetailedMip = 0;
+    resourceViewDesc.Texture2DArray.MipLevels = 1;
+    resourceViewDesc.Texture2DArray.FirstArraySlice = subresource_index;
+    resourceViewDesc.Texture2DArray.ArraySize = 1;
+    result = ID3D11Device_CreateShaderResourceView(rendererData->d3dDevice,
+        (ID3D11Resource *)textureData->mainTexture,
+        &resourceViewDesc,
+        &textureData->mainTextureResourceView
+        );
+    if (FAILED(result)) {
+        D3D11_DestroyTexture(renderer, texture);
+        WIN_SetErrorFromHRESULT(SDL_COMPOSE_ERROR("ID3D11Device1::CreateShaderResourceView"), result);
+        return -1;
+    }
+
+    if (textureData->nv12) {
+        D3D11_SHADER_RESOURCE_VIEW_DESC nvResourceViewDesc = resourceViewDesc;
+
+        nvResourceViewDesc.Format = DXGI_FORMAT_R8G8_UNORM;
+
+        result = ID3D11Device_CreateShaderResourceView(rendererData->d3dDevice,
+            (ID3D11Resource *)textureData->mainTexture,
+            &nvResourceViewDesc,
+            &textureData->mainTextureResourceViewNV
+            );
+        if (FAILED(result)) {
+            D3D11_DestroyTexture(renderer, texture);
+            WIN_SetErrorFromHRESULT(SDL_COMPOSE_ERROR("ID3D11Device1::CreateShaderResourceView"), result);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 static void
 D3D11_DestroyTexture(SDL_Renderer * renderer,
                      SDL_Texture * texture)
@@ -2374,6 +2463,7 @@ D3D11_CreateRenderer(SDL_Window * window, Uint32 flags)
     renderer->WindowEvent = D3D11_WindowEvent;
     renderer->SupportsBlendMode = D3D11_SupportsBlendMode;
     renderer->CreateTexture = D3D11_CreateTexture;
+    renderer->CreateTextureFromHandle = D3D11_CreateTextureFromHandle;
     renderer->UpdateTexture = D3D11_UpdateTexture;
 #if SDL_HAVE_YUV
     renderer->UpdateTextureYUV = D3D11_UpdateTextureYUV;
