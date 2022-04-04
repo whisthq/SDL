@@ -1076,7 +1076,6 @@ METAL_UpdateTextureNV(SDL_Renderer * renderer, SDL_Texture * texture,
                     const Uint8 *Yplane, int Ypitch,
                     const Uint8 *UVplane, int UVpitch)
 { @autoreleasepool {
-    METAL_RenderData *data = (__bridge METAL_RenderData *) renderer->driverdata;
     METAL_TextureData *texturedata = (__bridge METAL_TextureData *)texture->driverdata;
     SDL_Rect UVrect = {rect->x / 2, rect->y / 2, (rect->w + 1) / 2, (rect->h + 1) / 2};
 
@@ -1085,79 +1084,16 @@ METAL_UpdateTextureNV(SDL_Renderer * renderer, SDL_Texture * texture,
         return 0;
     }
 
-    // Added by Whist, this case checks whether Yplane and UVplane are equal, which is 
-    // specifically the case with our internal version of FFmpeg, so to avoid an extra memcpy
-    if (Yplane == UVplane) {
-        // Whist gave us VideoToolbox frame directly via custom FFmpeg
-        CVPixelBufferRef frame_data = (CVPixelBufferRef) Yplane;
-        CVMetalTextureCacheRef texture_cache;
-        auto status = CVMetalTextureCacheCreate(kCFAllocatorDefault, NULL, data.mtldevice, NULL, &texture_cache);
-        if (status != kCVReturnSuccess) {
-            return SDL_SetError("Failed to create the texture cache");
-        }
-        CVMetalTextureRef cv_y_texture;
-        CVMetalTextureRef cv_uv_texture;
-        status = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, texture_cache, frame_data, NULL, MTLPixelFormatR8Unorm, rect->w, rect->h, 0, &cv_y_texture);
-        if (status != kCVReturnSuccess) {
-            return SDL_SetError("Failed to create texture from Y pixel buffer");
-        }
-        status = CVMetalTextureCacheCreateTextureFromImage(kCFAllocatorDefault, texture_cache, frame_data, NULL, MTLPixelFormatRG8Unorm, UVrect.w, UVrect.h, 1, &cv_uv_texture);
-        if (status != kCVReturnSuccess) {
-            return SDL_SetError("Failed to create texture from UV pixel buffer");
-        }
-        id<MTLTexture> y_texture = CVMetalTextureGetTexture(cv_y_texture);
-        id<MTLTexture> uv_texture = CVMetalTextureGetTexture(cv_uv_texture);
-        if (data.mtlcmdencoder != nil) {
-            [data.mtlcmdencoder endEncoding];
-            data.mtlcmdencoder = nil;
-        }
-
-        // Queue a new buffer as needed
-        if (data.mtlcmdbuffer == nil) {
-            data.mtlcmdbuffer = [data.mtlcmdqueue commandBuffer];
-        }
-
-        // Queue up all the texture copies
-        id<MTLBlitCommandEncoder> blitcmd = [data.mtlcmdbuffer blitCommandEncoder];
-
-        // Copy the textures over
-        [blitcmd copyFromTexture:y_texture
-                     sourceSlice:0
-                     sourceLevel:0
-                    sourceOrigin:MTLOriginMake(0, 0, 0)
-                      sourceSize:MTLSizeMake(rect->w, rect->h, 1)
-                       toTexture:texturedata.mtltexture
-                destinationSlice:0
-                destinationLevel:0
-               destinationOrigin:MTLOriginMake(rect->x, rect->y, 0)];
-
-        [blitcmd copyFromTexture:uv_texture
-                     sourceSlice:0
-                     sourceLevel:0
-                    sourceOrigin:MTLOriginMake(0, 0, 0)
-                      sourceSize:MTLSizeMake(UVrect.w, UVrect.h, 1)
-                       toTexture:texturedata.mtltexture_uv
-                destinationSlice:0
-                destinationLevel:0
-               destinationOrigin:MTLOriginMake(UVrect.x, UVrect.y, 0)];
-
-        [blitcmd endEncoding];
-
-        [data.mtlcmdbuffer commit];
-        data.mtlcmdbuffer = nil;
-        CVBufferRelease(cv_y_texture);
-        CVBufferRelease(cv_uv_texture);
-        CFRelease(texture_cache);
-    } else {
-        // Regular SDL pathway, for generic data (upstream code)
-        if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture, *rect, 0, Yplane, Ypitch) < 0) {
-            return -1;
-        }
-        if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture_uv, UVrect, 0, UVplane, UVpitch) < 0) {
-            return -1;
-        }
+    if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture, *rect, 0, Yplane, Ypitch) < 0) {
+        return -1;
     }
+
+    if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture_uv, UVrect, 0, UVplane, UVpitch) < 0) {
+        return -1;
+    }
+
     texturedata.hasdata = YES;
+
     return 0;
 }}
 #endif

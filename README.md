@@ -21,8 +21,6 @@ This repository is Whist's fork of SDL, with a few modifications. We forked SDL 
 
 - Created a GitHub Actions workflows, `build-and-publish-sdl.yml`, to build, test and publish on Windows, macOS and Linux Ubuntu
 
-- Modified `METAL_UpdateTextureNV` to take VideoToolbox frames, wrap Metal textures around them, and directly GPU copy those Metal textures to the SDL texture to be rendered. We determine whether to use this hardware transfer or a software copy by checking the arguments to that function - if the Y and UV planes are the same, it's a VideoToolbox frame, and if not, it's a CPU frame.
-
 - Added SDL hint for setting the SDL window and title bar to be integrated within the SDL window
 
 - Fixed an issue with watching videos on the Whist remote browser when the SDL window is in fullscreen mode
