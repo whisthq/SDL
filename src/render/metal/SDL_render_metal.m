@@ -969,13 +969,16 @@ METAL_UpdateTextureNV(SDL_Renderer * renderer, SDL_Texture * texture,
     METAL_RenderData *data = (__bridge METAL_RenderData *) renderer->driverdata;
     METAL_TextureData *texturedata = (__bridge METAL_TextureData *)texture->driverdata;
     SDL_Rect UVrect = {rect->x / 2, rect->y / 2, (rect->w + 1) / 2, (rect->h + 1) / 2};
+
+    /* Bail out if we're supposed to update an empty rectangle */
+    if (rect->w <= 0 || rect->h <= 0) {
+        return 0;
+    }
+
+    // Added by Whist, this case checks whether Yplane and UVplane are equal, which is 
+    // specifically the case with our internal version of FFmpeg, so to avoid an extra memcpy
     if (Yplane == UVplane) {
         // Whist gave us VideoToolbox frame
-
-        /* Bail out if we're supposed to update an empty rectangle */
-        if (rect->w <= 0 || rect->h <= 0) {
-            return 0;
-        }
 
         CVPixelBufferRef frame_data = (CVPixelBufferRef) Yplane;
         CVMetalTextureCacheRef texture_cache;
@@ -1033,12 +1036,9 @@ METAL_UpdateTextureNV(SDL_Renderer * renderer, SDL_Texture * texture,
 
         [data.mtlcmdbuffer commit];
         data.mtlcmdbuffer = nil;
-        texturedata.hasdata = YES;
         CVBufferRelease(cv_y_texture);
         CVBufferRelease(cv_uv_texture);
-        CVMetalTextureCacheFlush(texture_cache, 0);
         CFRelease(texture_cache);
-        return 0;
     } else {
         // ordinary software stuff
         if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture, *rect, 0, Yplane, Ypitch) < 0) {
@@ -1047,8 +1047,9 @@ METAL_UpdateTextureNV(SDL_Renderer * renderer, SDL_Texture * texture,
         if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture_uv, UVrect, 0, UVplane, UVpitch) < 0) {
             return -1;
         }
-        return 0;
     }
+    texturedata.hasdata = YES;
+    return 0;
 }}
 #endif
 
