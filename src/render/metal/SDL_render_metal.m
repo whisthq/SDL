@@ -978,8 +978,7 @@ METAL_UpdateTextureNV(SDL_Renderer * renderer, SDL_Texture * texture,
     // Added by Whist, this case checks whether Yplane and UVplane are equal, which is 
     // specifically the case with our internal version of FFmpeg, so to avoid an extra memcpy
     if (Yplane == UVplane) {
-        // Whist gave us VideoToolbox frame
-
+        // Whist gave us VideoToolbox frame directly via custom FFmpeg
         CVPixelBufferRef frame_data = (CVPixelBufferRef) Yplane;
         CVMetalTextureCacheRef texture_cache;
         auto status = CVMetalTextureCacheCreate(kCFAllocatorDefault, NULL, data.mtldevice, NULL, &texture_cache);
@@ -1040,7 +1039,8 @@ METAL_UpdateTextureNV(SDL_Renderer * renderer, SDL_Texture * texture,
         CVBufferRelease(cv_uv_texture);
         CFRelease(texture_cache);
     } else {
-        // ordinary software stuff
+        SDL_Log("Fell back to software UpdateTextureNV pathway");
+        // Regular SDL pathway, for generic data (upstream code)
         if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture, *rect, 0, Yplane, Ypitch) < 0) {
             return -1;
         }
