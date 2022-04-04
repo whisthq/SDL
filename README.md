@@ -29,6 +29,8 @@ This repository is Whist's fork of SDL, with a few modifications. We forked SDL 
 
 - Added an option to set a flag specifying a Cmd+Q force quitting on macOS when exiting the SDL application, to be passed to a frontend framework like Electron
 
+- Added a new function `SDL_CreateTextureFromHandle()` to create SDL textures backed by hardware frames already on the GPU. This allows us to directly pass textures to the renderer instead of copying to a single, repeatedly rendered texture.
+
 ## Development
 
 Before building or modifying the code, you should pull the latest changes from the public [`libsdl-org/SDL`](https://github.com/libsdl-org/SDL) repository that this repository is forked from. To set up your repository, follow these steps:

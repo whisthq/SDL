@@ -351,6 +351,52 @@ extern DECLSPEC SDL_Texture * SDLCALL SDL_CreateTexture(SDL_Renderer * renderer,
 extern DECLSPEC SDL_Texture * SDLCALL SDL_CreateTextureFromSurface(SDL_Renderer * renderer, SDL_Surface * surface);
 
 /**
+ * Structure used with SDL_CreateTextureFromHandle() under D3D11.
+ */
+typedef struct
+{
+    /** Texture (or array) as D3D11Texture2D.
+     *
+     * This texture must be created on the same device as SDL is using
+     * (retrieved via SDL_RenderGetD3D11Device()).
+     */
+    void *texture;
+    /** Subresource index within an array; zero if not an array. */
+    int index;
+} SDL_TextureHandleD3D11;
+
+/**
+ * Create a texture from a platform-specific handle which refers to a
+ * texture.
+ *
+ * This wraps the given handle inside an SDL texture, allowing use of
+ * external textures within SDL.
+ *
+ * The handle format depends on the platform:
+ * - Windows/D3D11: a pointer to a filled SDL_TextureHandleD3D11
+ *   structure.
+ * - macOS/Metal: a pointer to a CVPixelBuffer containing all planes of
+ *   the texture.
+ *
+ * The user is responsible for any necessary synchronisation if the
+ * texture may also be accessed from other threads.
+ *
+ * \param renderer the rendering context
+ * \param format one of the enumerated values in SDL_PixelFormatEnum
+ * \param access one of the enumerated values in SDL_TextureAccess
+ * \param w the width of the texture in pixels
+ * \param h the height of the texture in pixels
+ * \param handle platform-specific handle; see notes
+ * \returns a pointer to the created texture or NULL if something went
+ *          wrong; call SDL_GetError() for more information.
+ *
+ * \since This function is available in Whist SDL only.
+ */
+extern DECLSPEC SDL_Texture * SDLCALL SDL_CreateTextureFromHandle(SDL_Renderer * renderer,
+                                                                  Uint32 format, int access,
+                                                                  int w, int h, void * handle);
+
+/**
  * Query the attributes of a texture.
  *
  * \param texture the texture to query
