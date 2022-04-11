@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2021 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -478,17 +478,19 @@ Cocoa_HandleMouseWheel(SDL_Window *window, NSEvent *event)
         }
     }
 
-    if (![event hasPreciseScrollingDeltas]) {
-        // According to Apple's discussion in their documentation for scrollingDeltaX at
-        // https://developer.apple.com/documentation/appkit/nsevent/1524505-scrollingdeltax,
-        // we must manually handle the case that precise scrolling deltas were not found.
-
-        // Text-based applications such as terminals will commonly just multiply by the
-        // linewidth. According to
-        // https://linebender.gitbook.io/linebender-graphics-wiki/mouse-wheel#external-mouse-wheel-vs-trackpad,
-        // a value of 32 is correct here.
-        x *= 32;
-        y *= 32;
+    /* For discrete scroll events from conventional mice, always send a full tick.
+       For continuous scroll events from trackpads, send fractional deltas for smoother scrolling. */
+    if (![event respondsToSelector:@selector(hasPreciseScrollingDeltas)] || ![event hasPreciseScrollingDeltas]) {
+        if (x > 0) {
+            x = SDL_ceil(x);
+        } else if (x < 0) {
+            x = SDL_floor(x);
+        }
+        if (y > 0) {
+            y = SDL_ceil(y);
+        } else if (y < 0) {
+            y = SDL_floor(y);
+        }
     }
 
     // Based on the momentumPhase of the scroll, record whether the scroll event is part of a momentum
