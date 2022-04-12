@@ -1040,7 +1040,6 @@ METAL_UpdateTextureNV(SDL_Renderer * renderer, SDL_Texture * texture,
         CVBufferRelease(cv_uv_texture);
         CFRelease(texture_cache);
     } else {
-        SDL_Log("Fell back to software UpdateTextureNV pathway");
         // Regular SDL pathway, for generic data (upstream code)
         if (METAL_UpdateTextureInternal(renderer, texturedata, texturedata.mtltexture, *rect, 0, Yplane, Ypitch) < 0) {
             return -1;
