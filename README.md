@@ -15,8 +15,6 @@ This repository is Whist's fork of SDL, with a few modifications. We forked SDL 
 
 - Enable capturing macOS pinch gestures using Cocoa, to enable pinch-to-zoom on macOS trackpad devices
 
-- Reduce the SDL Metal implementation of updateYUVtexture from two data copies when combining with FFmpeg (FFmpeg &rarr; Staging Texture &rarr; Actual Texture) to one copy (FFmpeg &rarr; Actual Texture). This feature requires FFmpeg `av_malloc` to be pagesize-aligned, which is a modification we made on our own internal FFmpeg fork. This feature also modifies SDL to create one command encoder rather than three
-
 - Added SDL events for detection window occlusion on macOS
 
 - Created a GitHub Actions workflows, `build-and-publish-sdl.yml`, to build, test and publish on Windows, macOS and Linux Ubuntu
