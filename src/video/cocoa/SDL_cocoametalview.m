@@ -75,6 +75,9 @@ SDL_MetalViewEventWatch(void *userdata, SDL_Event *event)
 - (CALayer*)makeBackingLayer
 {
     // Modified by Whist
+    // Removed:
+    // return [self.class.layerClass layer];
+    // Added:
     CAMetalLayer* metalLayer = [CAMetalLayer new];
     metalLayer.wantsExtendedDynamicRangeContent = YES;
     
