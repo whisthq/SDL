@@ -9,23 +9,23 @@ This repository is Whist's fork of SDL, with a few modifications. We forked SDL 
 
 - Copy `README.txt` to `README.md` so that GitHub will render it nicely, and update it with our continuous integration workflow
 
-- Enable precision scrolling events
-
 - Allow `Command+W` to passthrough to the application on macOS, instead of being captured by the "Close Window" shortcut
 
 - Enable capturing macOS pinch gestures using Cocoa, to enable pinch-to-zoom on macOS trackpad devices
 
-- Added SDL events for detection window occlusion on macOS
+- Added SDL events for detection window occlusion on macOS. On Windows, we chose not to implement this feature as it requires complex engineering for little benefits.
 
 - Created a GitHub Actions workflows, `build-and-publish-sdl.yml`, to build, test and publish on Windows, macOS and Linux Ubuntu
 
-- Added SDL hint for setting the SDL window and title bar to be integrated within the SDL window
+- Added SDL hint for setting the SDL window and title bar to be integrated within the SDL window, on macOS
 
 - Fixed an issue with watching videos on the Whist remote browser when the SDL window is in fullscreen mode
 
 - Added an option to set a flag specifying a Cmd+Q force quitting on macOS when exiting the SDL application, to be passed to a frontend framework like Electron
 
 - Added a new function `SDL_CreateTextureFromHandle()` to create SDL textures backed by hardware frames already on the GPU. This allows us to directly pass textures to the renderer instead of copying to a single, repeatedly rendered texture. This is implemented for D3D11 textures on Windows and Metal textures / Core Video buffers on macOS.
+
+- Force SDL to render the sRGB color profile on macOS, to make colors match native macOS more closely
 
 ## Development
 
