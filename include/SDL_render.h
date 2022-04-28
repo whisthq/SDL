@@ -262,6 +262,17 @@ extern DECLSPEC SDL_Renderer * SDLCALL SDL_CreateSoftwareRenderer(SDL_Surface * 
 extern DECLSPEC SDL_Renderer * SDLCALL SDL_GetRenderer(SDL_Window * window);
 
 /**
+ * Get the window associated with a renderer.
+ *
+ * \param renderer the renderer to query
+ * \returns the window on success or NULL on failure; call SDL_GetError() for
+ *          more information.
+ *
+ * \since This function is available since SDL 2.0.22.
+ */
+extern DECLSPEC SDL_Window * SDLCALL SDL_RenderGetWindow(SDL_Renderer *renderer);
+
+/**
  * Get information about a rendering context.
  *
  * \param renderer the rendering context
@@ -402,11 +413,15 @@ extern DECLSPEC SDL_Texture * SDLCALL SDL_CreateTextureFromHandle(SDL_Renderer *
  * \param texture the texture to query
  * \param format a pointer filled in with the raw format of the texture; the
  *               actual format may differ, but pixel transfers will use this
- *               format (one of the SDL_PixelFormatEnum values)
+ *               format (one of the SDL_PixelFormatEnum values). This argument
+ *               can be NULL if you don't need this information.
  * \param access a pointer filled in with the actual access to the texture
- *               (one of the SDL_TextureAccess values)
- * \param w a pointer filled in with the width of the texture in pixels
- * \param h a pointer filled in with the height of the texture in pixels
+ *               (one of the SDL_TextureAccess values). This argument can be
+ *               NULL if you don't need this information.
+ * \param w a pointer filled in with the width of the texture in pixels. This
+ *          argument can be NULL if you don't need this information.
+ * \param h a pointer filled in with the height of the texture in pixels. This
+ *          argument can be NULL if you don't need this information.
  * \returns 0 on success or a negative error code on failure; call
  *          SDL_GetError() for more information.
  *
@@ -1649,6 +1664,7 @@ extern DECLSPEC int SDLCALL SDL_RenderCopyExF(SDL_Renderer * renderer,
  * vertex array Color and alpha modulation is done per vertex
  * (SDL_SetTextureColorMod and SDL_SetTextureAlphaMod are ignored).
  *
+ * \param renderer The rendering context.
  * \param texture (optional) The SDL texture to use.
  * \param vertices Vertices.
  * \param num_vertices Number of vertices.
@@ -1673,6 +1689,7 @@ extern DECLSPEC int SDLCALL SDL_RenderGeometry(SDL_Renderer *renderer,
  * vertex arrays Color and alpha modulation is done per vertex
  * (SDL_SetTextureColorMod and SDL_SetTextureAlphaMod are ignored).
  *
+ * \param renderer The rendering context.
  * \param texture (optional) The SDL texture to use.
  * \param xy Vertex positions
  * \param xy_stride Byte size to move from one element to the next element
@@ -1704,7 +1721,8 @@ extern DECLSPEC int SDLCALL SDL_RenderGeometryRaw(SDL_Renderer *renderer,
  * Read pixels from the current rendering target to an array of pixels.
  *
  * **WARNING**: This is a very slow operation, and should not be used
- * frequently.
+ * frequently. If you're using this on the main rendering target, it should be
+ * called after rendering and before SDL_RenderPresent().
  *
  * `pitch` specifies the number of bytes between rows in the destination
  * `pixels` data. This allows you to write to a subrectangle or have padded
