@@ -179,12 +179,14 @@ SDL_SendWindowEvent(SDL_Window * window, Uint8 windowevent, int data1,
         return 0;
       }
       window->flags |= SDL_WINDOW_OCCLUDED;
+      SDL_OnWindowFocusLost(window);
       break;
     case SDL_WINDOWEVENT_UNOCCLUDED:
       if (!(window->flags & SDL_WINDOW_OCCLUDED)) {
         return 0;
       }
       window->flags &= ~SDL_WINDOW_OCCLUDED;
+      SDL_OnWindowFocusGained(window);
       break;
     }
 
