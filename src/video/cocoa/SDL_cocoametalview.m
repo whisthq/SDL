@@ -79,12 +79,11 @@ SDL_MetalViewEventWatch(void *userdata, SDL_Event *event)
     // return [self.class.layerClass layer];
     // Added:
     CAMetalLayer* metalLayer = [CAMetalLayer new];
-    metalLayer.wantsExtendedDynamicRangeContent = YES;
     
     // List of color spaces at https://developer.apple.com/documentation/coregraphics/cgcolorspace/color_space_names?language=objc
     // Or, you can do colorspace = [[[NSScreen mainScreen] colorSpace] CGColorSpace]; for the current display's color space
-    // There are a variety of other ways to generate CGColorSpaces    
-    CGColorSpaceRef colorspace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedSRGB);
+    // There are a variety of other ways to generate CGColorSpaces
+    CGColorSpaceRef colorspace = CGColorSpaceCreateWithName(kCGColorSpaceAdobeRGB1998);
     metalLayer.colorspace = colorspace;
     CGColorSpaceRelease(colorspace);
     return metalLayer;
