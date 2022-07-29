@@ -29,7 +29,7 @@
     },
     {
       matchPaths: ["acinclude/"],
-      groupName: "acinlunde",
+      groupName: "acinclude",
     },
     {
       matchPaths: ["android-project-ant/"],
